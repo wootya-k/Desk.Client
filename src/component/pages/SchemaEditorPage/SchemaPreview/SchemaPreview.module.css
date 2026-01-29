@@ -1,0 +1,12 @@
+
+.previewPanel {
+  background-color: white;
+}
+.previewPre.invalid {
+  color: #b12718;
+}
+
+.previewPanel {
+  padding: 10px;
+}
+

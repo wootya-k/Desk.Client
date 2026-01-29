@@ -1,0 +1,43 @@
+/* PrintOptionsModal.module.css */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 10000; /* Выше основной модалки */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.modalContent {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  padding: 24px 32px;
+  max-width: 600px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.modalTitle {
+  margin: 0 0 16px;
+  font-size: 20px;
+  color: #333;
+}
+
+.modalMessage {
+  margin: 0 0 20px;
+  font-size: 16px;
+  color: #555;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+}

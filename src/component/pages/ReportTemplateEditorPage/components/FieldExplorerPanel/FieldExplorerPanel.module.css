@@ -1,0 +1,150 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: white;
+  border: 1px solid #e1e4e8;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border-radius: 6px;
+}
+
+.header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e1e4e8;
+  background: #fafbfc;
+  flex-shrink: 0;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #24292f;
+}
+
+.content {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  padding: 0;
+}
+
+.fieldGroups {
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.fieldGroup {
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex-shrink: 0;
+}
+
+.fieldGroup:last-child {
+  border-bottom: none;
+}
+
+.groupHeader {
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.groupHeader:hover {
+  background: #f6f8fa;
+}
+
+.groupTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #24292f;
+}
+
+.groupIcon {
+  font-size: 11px;
+  color: #656d76;
+  width: 12px;
+  text-align: center;
+}
+
+.fieldsCount {
+  color: #656d76;
+  font-weight: normal;
+  margin-left: 8px;
+}
+
+.fieldsList {
+  background: #fafbfc;
+  border-top: 1px solid #f0f0f0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.fieldItem {
+  padding: 10px 16px 10px 28px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.fieldItem:hover {
+  background: #e9f1ff;
+}
+
+.fieldItem:last-child {
+  border-bottom: none;
+}
+
+.fieldMain {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #24292f;
+}
+
+.fieldSource {
+  font-size: 10px;
+  background: #e9ecef;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #495057;
+}
+
+.fieldPath {
+  font-size: 11px;
+  color: #656d76;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.emptyState {
+  padding: 40px 20px;
+  text-align: center;
+  color: #656d76;
+}
+
+.emptyState p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+}
+
+.emptyState small {
+  font-size: 12px;
+  opacity: 0.7;
+}

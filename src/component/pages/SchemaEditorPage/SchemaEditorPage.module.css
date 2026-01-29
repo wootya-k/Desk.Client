@@ -1,0 +1,202 @@
+
+
+.pageContainer {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+}
+
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+}
+
+.loadingSpinner {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.pageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #eee;
+}
+
+.headerActions {
+    display: flex;
+    gap: 15px;
+}
+
+.layoutContainer {
+    padding-top: 20px;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 24px;
+    flex: 1;
+    min-height: 70vh;
+}
+
+.mainPanel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidePanel {
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    border: 1px solid #ecf0f1;
+    border-radius: 8px;
+}
+
+.schemaConfig {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.objectConfig {
+    border-bottom: 1px solid #eee;
+}
+
+.invalid {
+    border-color: #e74c3c;
+}
+
+.objectRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.objectField {
+    flex: 1;
+    min-width: 200px;
+}
+
+.fieldLabel {
+    display: block;
+    font-size: 13px;
+    color: #555;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.titleInput {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.titleInput:focus {
+    border-color: #95a5a6;
+    outline: none;
+}
+
+.restrictedCheckbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #555;
+    margin-top: 25px;
+    white-space: nowrap;
+}
+
+.customCheckbox {
+    width: 16px;
+    height: 16px;
+    border: 1px solid #95a5a6;
+    border-radius: 3px;
+    appearance: none;
+    position: relative;
+    cursor: pointer;
+}
+
+.customCheckbox:checked {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.customCheckbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.controlsHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    margin-top: 10px;
+}
+
+.columnList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 5px;
+}
+
+/* Стилизация скроллбара */
+.columnList::-webkit-scrollbar {
+    width: 8px;
+}
+
+.columnList::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.columnList::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.columnList::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  padding-top: 5px;
+  background: none;
+}
+

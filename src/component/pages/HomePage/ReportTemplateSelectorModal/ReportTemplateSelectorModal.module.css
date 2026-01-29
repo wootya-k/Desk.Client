@@ -1,0 +1,102 @@
+/* @modals/ReportTemplateSelectorModal.module.css */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.modalPanel {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 380px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.modalTitle {
+  margin: 0 0 20px;
+  font-size: 20px;
+  color: #2c3e50;
+  text-align: center;
+}
+.listContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+.templateItem {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+.templateItem:hover {
+  border-color: #87c1e7;
+}
+.templateItem.dragging {
+  opacity: 0.7;
+  transform: scale(0.98);
+}
+.templateTitle {
+  font-size: 17px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+.templateTarget {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin-top: 4px;
+}
+.emptyMessage {
+  text-align: center;
+  color: #95a5a6;
+  font-style: italic;
+  margin-top: 30px;
+}
+.loading,
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  gap: 16px;
+}
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.modalActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+  gap: 16px;
+}

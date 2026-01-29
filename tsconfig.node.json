@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "composite": true, // Добавьте это
+    "module": "CommonJS",
+    "target": "ES2017",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}

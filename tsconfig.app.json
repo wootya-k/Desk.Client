@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "noEmit": false, 
+    "allowJs": false,
+    "checkJs": false,
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "moduleResolution": "Node16",
+    "baseUrl": ".",
+    "outDir": "dist"       
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,52 @@
+.optionsCardContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 50vh;
+    padding: 20px;
+}
+
+.table {
+    width: 280px;
+    table-layout: fixed;
+    border-collapse: collapse;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+.tableHeader {
+    background-color: #3498db;
+    color: white;
+    font-weight: bold;
+    height: 40px;
+}
+
+.tableCell {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ecf0f1;
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.tableRow:hover {
+    background-color: #f0f0f5;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+}
+
+/* Градиент для "затухания" текста */
+.cellAfter {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 50px;
+    height: 100%;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), white);
+    pointer-events: none;
+}

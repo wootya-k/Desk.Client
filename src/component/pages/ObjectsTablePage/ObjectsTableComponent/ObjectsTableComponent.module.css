@@ -1,0 +1,387 @@
+.container {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 1rem 0 0;
+  z-index: 1;
+  flex: 1;
+  position: relative;
+}
+
+/* Базовые стили таблицы */
+.table {
+  border-collapse: collapse;
+  background-color: transparent;
+  margin: 0;
+  width: 100%;
+  position: relative;
+}
+
+/* Стили для УЗКИХ таблиц (1-3 колонки) */
+.narrowTable {
+  width: auto;
+  min-width: auto;
+  margin: 0 auto;
+  max-width: 90%;
+}
+
+/* Стили для ШИРОКИХ таблиц (4+ колонок) */
+.wideTable {
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Общие стили заголовков - МИНИМАЛИЗМ */
+.headerCell {
+  font-weight: 600;
+  padding: 16px 12px;
+  color: #2c3e50;
+  font-size: 13px;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  border-bottom: 2px solid #e0e0e0;
+  cursor: grab;
+  user-select: none;
+  white-space: nowrap;
+  background-color: #fafafa;
+  min-width: 130px;
+  max-width: 400px;
+  height: 48px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-size: 12px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.headerCell:hover {
+  background-color: #f5f5f5;
+}
+
+.headerCell:active {
+  cursor: grabbing;
+}
+
+/* Стиль для перетаскиваемой колонки */
+.draggingColumn {
+  opacity: 0.5;
+  background-color: #e3f2fd !important;
+}
+
+/* Центрированные заголовки */
+.centeredHeader {
+  text-align: center;
+}
+
+/* Выровненные по левому краю заголовки */
+.leftAlignedHeader {
+  text-align: left;
+}
+
+/* Особый стиль для заголовка колонки действий */
+.actionsHeader {
+  background-color: #fafafa !important;
+  min-width: 120px;
+  max-width: none;
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  border-bottom: 2px solid #e0e0e0;
+  cursor: default;
+}
+
+.actionsHeader:hover {
+  background-color: #fafafa !important;
+}
+
+/* Стили строк - чистые линии */
+.row {
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.1s ease;
+  height: 52px;
+}
+
+.row:hover {
+  background-color: #f8f9fa;
+}
+
+/* Базовые стили ячеек */
+.cell {
+  padding: 12px;
+  font-size: 14px;
+  color: #374151;
+  background-color: inherit;
+  min-width: 130px;
+  max-width: 400px;
+  height: 52px;
+  overflow: hidden;
+  position: relative;
+  cursor: default;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background-color 0.1s ease, opacity 0.2s ease;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Центрированные ячейки */
+.centeredCell {
+  text-align: center;
+}
+
+/* Выровненные по левому краю ячейки */
+.leftAlignedCell {
+  text-align: left;
+}
+
+/* Подсветка колонки при наведении */
+.columnHovered {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+.row:hover .columnHovered {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Контент внутри ячеек */
+.centeredContent {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.leftAlignedContent {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+}
+
+/* Стили для кнопок действий - минимализм */
+.actionsContainer {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.actionsCell {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background-color: #fff;
+  padding: 0 !important;
+  min-width: 120px;
+  max-width: none;
+  height: 52px;
+  border-left: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.row:hover .actionsCell {
+  background-color: #f8f9fa;
+}
+
+/* Индикатор сортировки - минимализм */
+.sortIndicator {
+  margin-left: 4px;
+  font-size: 10px;
+  display: inline-block;
+  color: #666;
+}
+
+/* Стили для булевых значений - минимализм */
+.booleanContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.booleanTrue,
+.booleanFalse {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 2px;
+  font-weight: 500;
+  font-size: 12px;
+  border: 1px solid;
+}
+
+.booleanTrue {
+  color: #065f46;
+  background-color: #d1fae5;
+  border-color: #a7f3d0;
+}
+
+.booleanFalse {
+  color: #991b1b;
+  background-color: #fee2e2;
+  border-color: #fecaca;
+}
+
+/* Ресайзер колонок */
+.columnResizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color 0.2s ease;
+}
+
+.columnResizer:hover {
+  background-color: #667eea;
+}
+
+.headerCell:hover .columnResizer {
+  background-color: #e0e0e0;
+}
+
+/* Стили для кастомного тултипа - улучшенная версия */
+.tooltip {
+  position: fixed;
+  background: #1f2937;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  z-index: 1000;
+  pointer-events: none;
+  max-width: 600px;
+  max-height: 400px;
+  overflow: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border: 1px solid #374151;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+/* Стили для скроллбара в тултипе */
+.tooltip::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tooltip::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 3px;
+}
+
+.tooltip::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 3px;
+}
+
+.tooltip::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .container {
+    padding: 0.5rem 0 0;
+  }
+  
+  .narrowTable {
+    width: 95%;
+    margin: 0 auto;
+  }
+  
+  .cell {
+    padding: 10px 8px;
+    min-width: 100px;
+    max-width: 200px;
+  }
+  
+  .headerCell {
+    padding: 14px 10px;
+    font-size: 11px;
+    min-width: 100px;
+  }
+  
+  .actionsCell {
+    min-width: 100px;
+  }
+  
+  .actionsContainer {
+    gap: 6px;
+    padding: 0 6px;
+  }
+}
+
+/* Специфичные стили для узких таблиц - чистые линии */
+.narrowTable {
+  border: 1px solid #e5e5e5;
+}
+
+.narrowTable .headerCell {
+  background-color: #fafafa;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.narrowTable .cell {
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.narrowTable .row:last-child .cell {
+  border-bottom: none;
+}
+
+/* Специфичные стили для широких таблиц */
+.wideTable .headerCell {
+  border-right: 1px solid #f0f0f0;
+}
+
+.wideTable .headerCell:last-child {
+  border-right: none;
+}
+
+.wideTable .cell {
+  border-right: 1px solid #f5f5f5;
+}
+
+.wideTable .cell:last-child {
+  border-right: none;
+}
+
+/* === ИСПРАВЛЕННАЯ ЛИНИЯ ВСТАВКИ - ВО ВСЮ ВЫСОТУ ТАБЛИЦЫ === */
+.insertionLine {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  background-color: #2196f3;
+  z-index: 10;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+    box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 12px rgba(33, 150, 243, 0.9);
+  }
+  100% {
+    opacity: 0.6;
+    box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+  }
+}

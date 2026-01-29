@@ -1,0 +1,15 @@
+html, body, #root {
+  height: 100%;               /* Занимает всю доступную высоту */
+  width: 100%;                /* Занимает всю доступную ширину */
+  margin: 0;                  /* Убираем отступы по умолчанию */
+  padding: 0;                 /* Убираем отступы по умолчанию */
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  background-color: white;
+}
+.MuiGrid-direction-xs-column > .MuiGrid-item {
+  margin-bottom: 12px;
+}
+
+.MuiGrid-direction-xs-column > .MuiGrid-item:last-child {
+  margin-bottom: 0;
+}

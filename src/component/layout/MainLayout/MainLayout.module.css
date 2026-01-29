@@ -1,0 +1,18 @@
+/* src/component/layout/Layout.module.css */
+.appLayout {
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.mainContainer {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.contentArea {
+  flex: 1;
+  overflow-y: auto;
+}

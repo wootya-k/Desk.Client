@@ -1,0 +1,79 @@
+.glassBtn {
+  position: relative;
+  width: 100%;
+  padding: 14px 24px;
+  
+  /* Градиентный фон */
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+  color: white;
+  
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.glassBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
+  filter: brightness(1.1);
+}
+
+.glassBtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.glassBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: var(--text-secondary); /* Серый фон при загрузке */
+}
+
+/* Эффект блика */
+.glassBtn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: 0.5s;
+}
+
+.glassBtn:hover::after {
+  left: 150%;
+  transition: 0.7s ease-in-out;
+}
+
+.loaderWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

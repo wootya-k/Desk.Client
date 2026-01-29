@@ -1,0 +1,198 @@
+.controlItem {
+  border: 1px solid #ecf0f1;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+  position: relative;
+}
+
+.dragging {
+  opacity: 0.6;
+  background-color: #f9f9f9;
+}
+
+.dragOver {
+  border-top: 2px solid #3498db;
+}
+
+.controlHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.controlActions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  z-index: 2;
+  background: white;
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.dragHandle {
+  cursor: grab;
+  padding: 2px 5px;
+  font-size: 16px;
+  color: #7f8c8d;
+  user-select: none;
+}
+
+.dragHandle:hover {
+  color: #34495e;
+}
+
+.moveButtons {
+  display: flex;
+  gap: 3px;
+}
+
+.moveButton {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  width: 24px;
+  height: 24px;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  color: #333;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.moveButton:hover {
+  background-color: #f8f9fa;
+  border-color: #bbb;
+}
+
+.moveButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}
+
+.removeButton {
+  background: none;
+  border: 1px solid #e74c3c;
+  border-radius: 3px;
+  width: 24px;
+  height: 24px;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  color: #e74c3c;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.removeButton:hover {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.removeButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+  border-color: #ddd;
+  color: #95a5a6;
+}
+
+.controlCheckboxes {
+  display: flex;
+  gap: 15px;
+  margin-left: 10px;
+}
+
+.checkboxContainer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #555;
+}
+
+.checkboxLabel {
+  white-space: nowrap;
+}
+
+.controlFields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fieldWithLabel {
+  width: 100%;
+}
+
+.compactInput, .compactSelect {
+  padding: 8px 10px;
+  border: 1px solid #ecf0f1;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100%;
+  background: #fff;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.compactInput:focus, .compactSelect:focus {
+  border-color: #bdc3c7;
+  outline: none;
+}
+
+.compactSelect {
+  min-width: 100%;
+}
+
+.disabledSelect {
+  background-color: #f8f9fa;
+  color: #7f8c8d;
+  cursor: not-allowed;
+}
+
+.customCheckbox {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #95a5a6;
+  border-radius: 3px;
+  appearance: none;
+  position: relative;
+  cursor: pointer;
+}
+
+.customCheckbox:checked {
+  background-color: #3498db;
+  border-color: #3498db;
+}
+
+.customCheckbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}

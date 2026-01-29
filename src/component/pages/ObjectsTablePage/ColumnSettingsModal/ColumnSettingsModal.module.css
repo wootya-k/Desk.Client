@@ -1,0 +1,120 @@
+.modalBackdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.modalColumnSettings {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    padding: 24px 32px;
+    max-width: 500px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.modalTitle {
+    margin: 0 0 24px;
+    font-size: 20px;
+    color: #333;
+    text-align: center;
+}
+
+.dragging {
+  opacity: 0.5;
+  background-color: #f1f1f1;
+}
+
+.dragOver {
+  border-top: 2px solid #3498db;
+}
+
+.columnList {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* Стилизация скроллбара */
+.columnList::-webkit-scrollbar {
+  width: 8px;
+}
+
+.columnList::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.columnList::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.columnList::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.columnItem {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: #333;
+}
+
+.columnTitle {
+    flex-grow: 1;
+}
+
+.moveButtons {
+    display: flex;
+    gap: 4px;
+    /* Центрирование кнопок по вертикали */
+    align-items: center;
+}
+
+.moveButton {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    color: #333;
+    transition: background-color 0.2s ease;
+    /* Центрирование содержимого кнопки */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.moveButton:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    flex-wrap: wrap; /* Для адаптивности */
+}

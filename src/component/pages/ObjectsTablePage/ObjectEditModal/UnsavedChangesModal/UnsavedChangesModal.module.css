@@ -1,0 +1,51 @@
+/* components/ObjectEditModal/UnsavedChangesModal/UnsavedChangesModal.module.css */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalContent {
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  padding: 24px 32px;
+  max-width: 500px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modalTitle {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+}
+
+.modalMessage {
+  margin: 0 0 24px 0;
+  color: #555;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Для мобильных устройств - вертикальное расположение */
+@media (max-width: 480px) {
+  .modalActions {
+    flex-direction: column;
+  }
+}
