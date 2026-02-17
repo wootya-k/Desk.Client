@@ -786,6 +786,13 @@ const HomePage: React.FC = () => {
                     Печать
                 </FilledColorButton>
 
+                <FilledColorButton
+                    onClick={() => navigate('/corporation-stats/employee')}
+                    disabled={!isAdminOrMaster}
+                    width="100px"
+                >
+                    Статистика
+                </FilledColorButton>
                 {/* Кнопка для показа связей */}
                 <FilledColorButton
                     onClick={() => setShowConnections(!showConnections)}

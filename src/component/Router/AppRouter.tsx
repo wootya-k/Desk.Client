@@ -7,11 +7,10 @@ import HomePage from '@pages/HomePage/HomePage';
 import LoginPage from '@pages/LoginPage/LoginPage';
 import UserProfilePage from '@pages/UserProfilePage/UserProfilePage';
 import AuthLayout from 'component/layout/AuthLayout/AuthLayout';
-import MainLayout from 'component/layout/MainLayout/MainLayout'
-import SchemaEditorPage from '@pages/SchemaEditorPage/SchemaEditorPage'
-import ReportTemplateEditorPage from '@pages/ReportsEditorPage/ReportTemplateEditorPage'
-// import ReportTemplateEditorPage from '@pages/ReportTemplateEditorPage/ReportTemplateEditorPage'
-
+import MainLayout from 'component/layout/MainLayout/MainLayout';
+import SchemaEditorPage from '@pages/SchemaEditorPage/SchemaEditorPage';
+import ReportTemplateEditorPage from '@pages/ReportsEditorPage/ReportTemplateEditorPage';
+import CorporationStatsPage from '@pages/CorporationStatsPage/CorporationStatsPage';
 
 const router = createBrowserRouter(
   [
@@ -26,7 +25,6 @@ const router = createBrowserRouter(
           path: '/login',
           element: <LoginPage />,
         },
-        // Можно добавить /register, /forgot-password и т.д.
       ],
     },
     {
@@ -40,12 +38,8 @@ const router = createBrowserRouter(
           path: '/report-template-editor/:templateId?',
           element: <ReportTemplateEditorPage/>,
         },
-        // {
-        //   path: '/report-template-editor/:templateId?',
-        //   element: <ReportTemplateEditorPage />,
-        // },
         {
-          path: '/schema-editor/:schemaId?', // Вопросительный знак делает параметр необязательным
+          path: '/schema-editor/:schemaId?',
           element: <SchemaEditorPage />,
         },
         {
@@ -59,6 +53,10 @@ const router = createBrowserRouter(
         {
           path: '/view-objects/:type',
           element: <ObjectsTablePage />,
+        },
+        {
+          path: '/corporation-stats/:type',
+          element: <CorporationStatsPage />,
         },
         {
           path: '/user-profile',
