@@ -22,6 +22,8 @@ interface TableHeaderToolbarProps {
   rowsData: Record<string, unknown>[];
   ruToEnMap: Record<string, string>;
   isLoading?: boolean;
+  statusFilter: 'true' | 'false' | 'all';
+  onStatusFilterChange: (value: 'true' | 'false' | 'all') => void;
 }
 
 const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
@@ -39,6 +41,8 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
   rowsData,
   ruToEnMap,
   isLoading = false,
+  statusFilter,
+  onStatusFilterChange,
 }) => {
   const navigate = useNavigate();
   const user = getCurrentUser();
@@ -73,6 +77,17 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
           ruToEnMap={ruToEnMap}
           width="400px"
         />
+
+        <select
+          value={statusFilter}
+          onChange={(e) => onStatusFilterChange(e.target.value as 'true' | 'false' | 'all')}
+          className={styles.statusSelect}
+          title="Фильтр по статусу объекта"
+        >
+          <option value="true">✅ Активные</option>
+          <option value="all">📋 Все</option>
+          <option value="false">❌ Неактивные</option>
+        </select>
 
         <FilledColorButton
           onClick={onSaveClick}

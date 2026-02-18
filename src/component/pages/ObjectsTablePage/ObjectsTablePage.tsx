@@ -43,14 +43,14 @@ const saveTableConfig = (tableType: string, columns: ColumnConfig[]): void => {
   try {
     const existingConfigStr = localStorage.getItem(TABLE_CONFIG_KEY);
     const existingConfig: TableConfig = existingConfigStr ? JSON.parse(existingConfigStr) : {};
-    
+
     existingConfig[tableType] = columns;
-    
+
     localStorage.setItem(TABLE_CONFIG_KEY, JSON.stringify(existingConfig));
-    
+
     // Дублируем в куки для совместимости
     setExpiringItem(`columnsConfig_${tableType}`, JSON.stringify(columns), 365);
-    
+
     console.log(`💾 Конфигурация сохранена для ${tableType}:`, columns.length, 'колонок');
   } catch (error) {
     console.error('❌ Ошибка сохранения конфигурации:', error);
@@ -68,7 +68,7 @@ const loadTableConfig = (tableType: string): ColumnConfig[] | null => {
         return config[tableType];
       }
     }
-    
+
     // Потом пробуем куки для обратной совместимости
     const cookieConfig = getExpiringItem(`columnsConfig_${tableType}`);
     if (cookieConfig) {
@@ -76,7 +76,7 @@ const loadTableConfig = (tableType: string): ColumnConfig[] | null => {
       console.log(`📂 Конфигурация загружена из куки для ${tableType}`);
       return columns;
     }
-    
+
     console.log(`❌ Конфигурация не найдена для ${tableType}`);
     return null;
   } catch (error) {
@@ -107,7 +107,7 @@ const ObjectsTablePage: React.FC = () => {
   const [isShiftPressed, setIsShiftPressed] = useState(false);
   const [tableWidth, setTableWidth] = useState(0);
   const [hasVerticalScroll, setHasVerticalScroll] = useState(false);
-
+  const [statusFilter, setStatusFilter] = useState<'true' | 'false' | 'all'>('true');
   // === ОТЛАДОЧНЫЕ ЛОГИ ===
   useEffect(() => {
     console.group(`🔧 ObjectsTablePage Debug - ${type}`);
@@ -236,20 +236,20 @@ const ObjectsTablePage: React.FC = () => {
       }
 
       console.log('🔄 Объединяем сохраненные колонки с дефолтными');
-      
+
       const mergedColumns: ColumnConfig[] = [];
       const savedAccessors = new Set(savedColumns.map(col => col.accessor));
-      
+
       // Добавляем сохраненные колонки
       mergedColumns.push(...savedColumns.map(col => ({ ...col })));
-      
+
       // Добавляем недостающие колонки из дефолтных
       defaultColumns.forEach(defaultCol => {
         if (!savedAccessors.has(defaultCol.accessor)) {
           mergedColumns.push({ ...defaultCol });
         }
       });
-      
+
       return mergedColumns;
     },
     []
@@ -261,31 +261,31 @@ const ObjectsTablePage: React.FC = () => {
         console.log('❌ Type не определён, пропускаем загрузку');
         return;
       }
-      
-      console.log(`🔄 Загрузка данных для типа: ${type}`);
-      
+
+      console.log(`🔄 Загрузка данных для типа: ${type}, статус: ${statusFilter}`);
+
       try {
         const [data, schemaResponse] = await Promise.all([
-          fetchAllObjects(type),
+          fetchAllObjects(type, { status: statusFilter }),
           fetchFieldTitlesById(type),
         ]);
-        
+
         const { objectType, fieldTitles } = schemaResponse;
         setObjectType(objectType);
-        
+
         const newMap: Record<string, string> = {};
         Object.entries(fieldTitles).forEach(([en, ru]) => {
           newMap[ru.toLowerCase()] = en;
         });
         setRuToEnMap(newMap);
-        
+
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
-        
+
         // Загружаем сохраненную конфигурацию
         const savedConfig = loadTableConfig(type);
         let initialColumns: ColumnConfig[];
-        
+
         if (savedConfig && savedConfig.length > 0) {
           console.log('✅ Используем сохраненную конфигурацию колонок');
           initialColumns = mergeColumns(savedConfig, defaultCols);
@@ -293,29 +293,30 @@ const ObjectsTablePage: React.FC = () => {
           console.log('ℹ️ Используем колонки по умолчанию');
           initialColumns = defaultCols.map(col => ({ ...col }));
         }
-        
+
         const parsedRows: Row[] = (data as FetchObjectItem[]).map((item) => {
           const obj = JSON.parse(item.value);
           return { ...obj, id: item.id };
         });
-        
+
         setColumns(initialColumns);
         setRows(parsedRows);
-        
+
         console.log('✅ Данные успешно загружены:', {
           objectType,
           columnsCount: initialColumns.length,
           rowsCount: parsedRows.length,
-          hasSavedConfig: !!savedConfig
+          hasSavedConfig: !!savedConfig,
+          statusFilter
         });
-        
+
       } catch (err) {
         console.error('❌ Ошибка загрузки:', err);
       }
     };
-    
+
     loadData();
-  }, [type, createDefaultColumns, mergeColumns]);
+  }, [type, statusFilter, createDefaultColumns, mergeColumns]);
 
   const performImmediateDelete = useCallback(async (id: string, row: Row) => {
     try {
@@ -385,46 +386,46 @@ const ObjectsTablePage: React.FC = () => {
       console.error('❌ Не удалось сохранить конфигурацию: type не определён');
       return;
     }
-    
+
     console.log('💾 Применение настроек колонок:', updatedColumns);
-    
+
     // Сохраняем конфигурацию
     saveTableConfig(type, updatedColumns);
-    
+
     // Обновляем состояние
     setColumns(updatedColumns);
     setIsModalOpen(false);
-    
+
     console.log('✅ Настройки успешно применены и сохранены');
   }, [type]);
 
   const handleResetSettings = useCallback(() => {
     console.log('🔄 Сброс настроек к значениям по умолчанию');
     const resetColumns = defaultColumns.map(col => ({ ...col }));
-    
+
     // Сохраняем сброшенные настройки
     if (type) {
       saveTableConfig(type, resetColumns);
     }
-    
+
     return resetColumns;
   }, [defaultColumns, type]);
 
   // === ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ИЗМЕНЕНИЯ ПОРЯДКА КОЛОНОК ===
   const handleColumnOrderChange = useCallback((newColumns: ColumnConfig[]) => {
     console.log('🔄 Изменение порядка колонок через D&D:', newColumns);
-    
+
     if (!type) {
       console.error('❌ Не удалось сохранить порядок колонок: type не определён');
       return;
     }
-    
+
     // Сохраняем новую конфигурацию
     saveTableConfig(type, newColumns);
-    
+
     // Обновляем состояние
     setColumns(newColumns);
-    
+
     console.log('✅ Порядок колонок успешно сохранен');
   }, [type]);
 
@@ -438,34 +439,36 @@ const ObjectsTablePage: React.FC = () => {
       if (!type) return;
       try {
         const [data, schemaResponse] = await Promise.all([
-          fetchAllObjects(type),
+          fetchAllObjects(type, { status: statusFilter }),
           fetchFieldTitlesById(type),
         ]);
         const { objectType, fieldTitles } = schemaResponse;
         setObjectType(objectType);
+
         const newMap: Record<string, string> = {};
         Object.entries(fieldTitles).forEach(([en, ru]) => {
           newMap[ru.toLowerCase()] = en;
         });
         setRuToEnMap(newMap);
+
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
-        
+
         // Загружаем сохраненную конфигурацию
         const savedConfig = loadTableConfig(type);
         let initialColumns: ColumnConfig[];
-        
+
         if (savedConfig && savedConfig.length > 0) {
           initialColumns = mergeColumns(savedConfig, defaultCols);
         } else {
           initialColumns = defaultCols.map(col => ({ ...col }));
         }
-        
+
         const parsedRows: Row[] = (data as FetchObjectItem[]).map((item) => {
           const obj = JSON.parse(item.value);
           return { ...obj, id: item.id };
         });
-        
+
         setColumns(initialColumns);
         setRows(parsedRows);
       } catch (err) {
@@ -473,9 +476,9 @@ const ObjectsTablePage: React.FC = () => {
       }
     };
     reloadData();
-  }, [type, closeEditModal, createDefaultColumns, mergeColumns]);
+  }, [type, statusFilter, closeEditModal, createDefaultColumns, mergeColumns]);
 
-  const hasOpenModal = 
+  const hasOpenModal =
     isNewObjectModalOpen ||
     isEditModalOpen ||
     isModalOpen ||
@@ -510,6 +513,8 @@ const ObjectsTablePage: React.FC = () => {
         ruFields={ruFields}
         rowsData={rows}
         ruToEnMap={ruToEnMap}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
       />
       <main className={styles.contentLayout} ref={tableContainerRef}>
         <ObjectTableComponent
@@ -520,11 +525,11 @@ const ObjectsTablePage: React.FC = () => {
           onColumnOrderChange={handleColumnOrderChange}
         />
         {hasVerticalScroll && (
-          <div 
+          <div
             className={styles.fixedHorizontalScroll}
             ref={fixedScrollRef}
           >
-            <div 
+            <div
               className={styles.fixedHorizontalScrollContent}
               style={{ width: `${tableWidth}px` }}
             />

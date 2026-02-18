@@ -53,3 +53,36 @@
 .fixedHorizontalScroll::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* Селектор статуса объектов */
+.statusSelect {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  min-width: 140px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.statusSelect:hover {
+  border-color: #667eea;
+}
+
+.statusSelect:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .statusSelect {
+    min-width: 120px;
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+}

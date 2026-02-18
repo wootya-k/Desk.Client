@@ -13,29 +13,61 @@ export interface FetchOptions {
 // const inactiveObjects = await fetchAllObjects('type1', { status: 'false' }); // только false
 
 export const fetchAllObjects = async (
-  type: string, 
-  options: FetchOptions = { status: 'true' }  // 'true' по умолчанию
+  type: string,
+  options: FetchOptions = { status: 'true' }
 ): Promise<ObjectRecord[]> => {
   try {
-    let url = await buildUrl(`/api/Objects/type/${type}`);
-    
-    // Добавляем параметр статуса в URL, если он не 'all'
-    if (options.status && options.status !== 'all') {
-      url += `?status=${options.status}`;
-    }
-    // Если status = 'all' - не добавляем параметр, сервер вернет все записи
-    
+    // Всегда запрашиваем ВСЕ данные с бэкенда, фильтрацию делаем на клиенте
+    const url = await buildUrl(`/api/Objects/type/${type}`);
+
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Ошибка при получении всех объектов: ' + response.statusText);
     }
 
     const rawData = await response.json();
-    return rawData.map((item: RawDataItem) => ({
+
+    // Маппим в ObjectRecord
+    const allObjects: ObjectRecord[] = rawData.map((item: RawDataItem) => ({
       id: item.id,
       value: item.value,
       status: item.status
     }));
+
+    // Клиентская фильтрация по статусу
+    if (options.status === 'all') {
+      return allObjects;
+    }
+
+    const expectedActive = options.status === 'true';
+
+    return allObjects.filter(obj => {
+      const objStatus = obj.status;
+
+      // Обработка boolean
+      if (typeof objStatus === 'boolean') {
+        return objStatus === expectedActive;
+      }
+
+      // Обработка строки 'true'/'false'
+      if (typeof objStatus === 'string') {
+        if (objStatus === 'true') return expectedActive;
+        if (objStatus === 'false') return !expectedActive;
+
+        // Попытка распарсить как JSON-boolean
+        // ФИКС: явное приведение к string перед toLowerCase()
+        try {
+          const parsed = JSON.parse((objStatus as string).toLowerCase());
+          return (parsed === true) === expectedActive;
+        } catch {
+          return expectedActive;
+        }
+      }
+
+      // Если статуса нет или null — считаем активным по умолчанию
+      return expectedActive;
+    });
+
   } catch (error) {
     console.error('Ошибка при получении всех объектов:', error);
     throw error;
@@ -49,7 +81,7 @@ export const fetchObjectById = async (id: string): Promise<ObjectView> => {
     if (!response.ok) {
       throw new Error('Ошибка при получении объекта по ID: ' + response.statusText);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Ошибка при получении объекта по ID:', error);
@@ -100,7 +132,7 @@ export const createObject = async (type: string, value: object): Promise<boolean
 export const updateObject = async (id: string, value: object): Promise<boolean> => {
   try {
     const url = await buildUrl(`/api/Objects/${encodeURIComponent(id)}`);
-    
+
     const response = await fetch(url, {
       method: 'PUT',
       headers: {
@@ -108,7 +140,7 @@ export const updateObject = async (id: string, value: object): Promise<boolean> 
       },
       body: JSON.stringify(value)
     });
-    
+
     if (!response.ok) {
       throw new Error('Ошибка при обновлении объекта: ' + response.statusText);
     }
@@ -130,11 +162,11 @@ export interface ChangeHistory {
 interface ChangeHistoryDto {
   stamp: string;
   user: {
-      login: string;
-      firstName: string;
-      lastName: string;
-      patronymic: string;
-      role: string;
+    login: string;
+    firstName: string;
+    lastName: string;
+    patronymic: string;
+    role: string;
   };
   value: string;
 }
@@ -143,11 +175,11 @@ export const fetchHistoryById = async (id: string): Promise<ChangeHistory[]> => 
   try {
     const url = await buildUrl(`/api/Objects/History/${id}`);
     const response = await fetch(url);
-    
+
     if (!response.ok) {
       throw new Error(`Ошибка при получении истории: ${response.status} ${response.statusText}`);
     }
-    
+
     let history = await response.json();
 
     let result = history.map((item: ChangeHistoryDto) => ({
@@ -155,7 +187,7 @@ export const fetchHistoryById = async (id: string): Promise<ChangeHistory[]> => 
       userLogin: `${item.user.firstName} ${item.user.lastName}`,
       value: item.value
     }))
-    
+
     return result;
   } catch (error) {
     console.error('Ошибка при получении истории изменений:', error);
