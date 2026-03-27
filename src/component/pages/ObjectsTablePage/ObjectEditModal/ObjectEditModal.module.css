@@ -5,7 +5,7 @@
   width: 100vw;
   height: 100vh;
   background: rgba(0, 0, 0, 0.3);
-  z-index: 3;
+  z-index: 15;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -13,36 +13,12 @@
   box-sizing: border-box;
 }
 
-.modalContainer {
-  background-color: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  padding: 24px 32px;
-  max-width: 600px;
-  width: 100%;
-  box-sizing: border-box;
-  max-height: 90vh;
+.closeContainer {
   display: flex;
-  flex-direction: column;
-  position: relative;
-  z-index: 2;
-}
-
-.modalHeader {
-  position: relative;
-  padding: 0 0 16px 0;
-  text-align: center;
-}
-
-.modalHeader h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 500;
-  color: #333;
-}
-
-.closeButton:hover {
-  color: #333;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 .modalContent {
@@ -62,182 +38,22 @@
   padding-right: 8px;
 }
 
-/* Контейнер для панели истории (вне основного модального окна) */
-.historyPanelContainer {
-  position: absolute;
-  top: 0;
-  right: -320px; /* Начальное положение - скрыто справа */
-  height: 100%;
-  width: 320px;
-  z-index: 100;
-  transition: right 0.3s ease;
-}
-
-.historyPanelContainer.visible {
-  right: 0; /* Показываем панель */
-}
-
-.historyPanel {
-  width: 100%;
-  height: 100%;
-  background-color: #f9f9f9;
-  border-left: 1px solid #e0e0e0;
-  padding: 15px;
-  overflow-y: auto;
-  box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
-}
-
-.historyHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #ddd;
-}
-
-.closeHistoryBtn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #666;
-  line-height: 1;
-}
-
-.historyList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-bottom: 30px;
-  padding-right: 10px;
-}
-
-.historyItem {
-  display: block;
-  text-align: left;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.historyItem:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.historyUser {
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.historyDate {
-  font-size: 0.85rem;
-  color: #666;
-}
-
-.historyCurrent {
-  color: #2c3e50;
-  font-weight: bold;
-}
-
-.historyLoading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin-bottom: 15px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Стили для формы (ObjectEditForm) */
-.formContent {
-  flex-grow: 1;
-  overflow-y: auto;
-  padding: 16px 0;
-  background-color: #fff;
-  max-height: 60vh;
-}
-
-/* Стилизация скроллбара */
-.formContent::-webkit-scrollbar {
-  width: 8px;
-}
-
-.formContent::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-.formContent::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-.formContent::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-.loadingContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 20px;
-}
-
-.errorContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 20px;
-  text-align: center;
-}
-
-.errorContainer p {
-  margin-bottom: 15px;
-  color: #e74c3c;
-  font-size: 1rem;
-}
-
-
-/* ... остальные стили остаются без изменений ... */
-
 /* Контейнер для панели истории */
 .historyPanelContainer {
   position: absolute;
   top: 0;
-  right: -350px; /* Начальное положение - скрыто справа */
+  right: -350px;
   height: 100%;
   width: 350px;
-  z-index: 100;
-  transition: right 0.3s ease;
+  z-index: 1;
+  transition: right 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(5px);
+  will-change: right;
 }
 
 .historyPanelContainer.visible {
-  right: 0; /* Показываем панель */
+  right: 0;
 }
 
 .historyPanel {
@@ -397,4 +213,316 @@
   font-size: 48px;
   margin-bottom: 15px;
   opacity: 0.5;
+}
+
+/* === Панель действий — анимация как у истории === */
+.edictsPanelContainer {
+  position: absolute;
+  top: 0;
+  left: -400px;
+  height: 100%;
+  width: 260px;
+  z-index: 1;
+  transition: left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(5px);
+  will-change: left;
+  pointer-events: none;
+  opacity: 0;
+  transition: left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s ease, pointer-events 0s 0.3s;
+}
+
+.edictsPanelContainer.visible {
+  left: 0;
+  opacity: 1;
+  pointer-events: auto;
+  transition: left 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s ease 0.1s, pointer-events 0s 0s;
+}
+
+.edictsPanel {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+  border-right: 1px solid #e0e0e0;
+  box-shadow: 5px 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.edictsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.edictsHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.closeEdictsBtn {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  color: #999;
+  line-height: 1;
+  transition: all 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.closeEdictsBtn:hover {
+  background: #fee2e2;
+  color: #e74c3c;
+}
+
+.edictsBody {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-top: 4px;
+}
+
+.edictsLoading,
+.edictsError,
+.edictsEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #7f8c8d;
+  min-height: 200px;
+}
+
+.edictsError button {
+  margin-top: 15px;
+  padding: 8px 20px;
+  background: #9b59b6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.edictsError button:hover {
+  background: #8e44ad;
+}
+
+.edictsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edictItem {
+  padding: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.edictItem:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.15);
+  border-color: #9b59b6;
+}
+
+.edictTitle {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 13px;
+}
+
+.edictMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.source {
+  padding: 4px 10px;
+  background: #fff3e0;
+  border: 1px solid #ffe0b2;
+  border-radius: 4px;
+  color: #e67e22;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 500;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target {
+  padding: 4px 10px;
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  border-radius: 4px;
+  color: #27ae60;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 500;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arrow {
+  color: #95a5a6;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+}
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+}
+
+.errorContainer p {
+  margin-bottom: 15px;
+  color: #e74c3c;
+  font-size: 1rem;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+.modalContainer {
+  background-color: #ffffff;
+  border-radius: 8px; /* ✅ Скругляем только верхние углы контейнера */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  padding: 10px 38px 28px 32px;
+  max-width: 600px;
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+}
+
+.modalHeader {
+  position: relative;
+  padding: 10px 8px 10px 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* ✅ Кнопка закрытия — вплотную к правому верхнему углу */
+.resetButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.1s;
+  z-index: 3;
+  border-top-right-radius: 8px;
+}
+
+/* ✅ По умолчанию: прозрачный фон, красный крестик */
+.resetButton .closeIcon {
+  font-size: 16px;
+  font-weight: 600; /* 🔥 Потолще */
+  line-height: 1;
+  color: #c41e3a; /* Красный крест */
+  transition: color 0.1s;
+}
+
+/* ✅ При наведении: красный фон, БЕЛЫЙ крестик */
+.resetButton:hover {
+  background-color:  #c41e3a;
+}
+
+.resetButton:hover .closeIcon {
+  color: #ffffff; /* Белый крест на красном фоне */
+}
+
+/* ✅ При нажатии: темнее красный */
+.resetButton:active {
+  background-color: #c50b1a;
+}
+
+.resetButton:active .closeIcon {
+  color: #ffffff;
+}
+
+
+.edictBadge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid #90caf9;
+}
+
+.typeChangedBadge {
+  font-size: 12px;
+  color: #9b59b6;
+  background: #f8f4ff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px dashed #9b59b6;
+  margin-right: auto;
+  align-self: center;
 }

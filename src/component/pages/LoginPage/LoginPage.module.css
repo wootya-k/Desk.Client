@@ -17,6 +17,11 @@
   position: relative;
 }
 
+.input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.9) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Подсказка про ESC */
 .loginCard::before {
   position: absolute;

@@ -13,9 +13,11 @@ interface ReportTemplateInfo {
 }
 
 interface ReportTemplateSelectorModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelect: (metaTitle: string) => void;
+    isOpen: boolean;
+    onClose: () => void;
+    onSelect: (metaTitle: string) => void;
+    mode?: 'edit' | 'print';  // ← новый проп
+    objectId?: string;       // ← опционально для печати
 }
 
 const ReportTemplateSelectorModal: React.FC<ReportTemplateSelectorModalProps> = ({

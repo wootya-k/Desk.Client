@@ -96,64 +96,81 @@ export interface SearchCondition {
   // checkRowAgainstConditionGroups:
   //  • Перебираем каждую группу (OR), внутри группы все условия (AND).
   //  • Если хотя бы одна группа вернула true => общий результат true.
-  export function checkRowAgainstConditionGroups(
-    row: Record<string, unknown>,
-    groups: ConditionGroup[],
-    ruToEnMap: Record<string, string>
-  ): boolean {
-    // OR
-    for (const group of groups) {
-      let allMatch = true; // AND
-      for (const cond of group) {
-        const enField = ruToEnMap[cond.ruField.toLowerCase()];
-        if (!enField) {
-          allMatch = false;
-          break;
-        }
-        const rowVal = row[enField];
-        if (rowVal === undefined || rowVal === null) {
-          allMatch = false;
-          break;
-        }
-        const rowStr = String(rowVal).toLowerCase();
-        const condStr = cond.value.toLowerCase();
-  
+ export function checkRowAgainstConditionGroups(
+  row: Record<string, unknown>,
+  groups: ConditionGroup[],
+  ruToEnMap: Record<string, string>
+): boolean {
+  // OR
+  for (const group of groups) {
+    let allMatch = true; // AND
+    for (const cond of group) {
+      const enField = ruToEnMap[cond.ruField.toLowerCase()];
+      if (!enField) {
+        allMatch = false;
+        break;
+      }
+      const rowVal = row[enField];
+      if (rowVal === undefined || rowVal === null) {
+        allMatch = false;
+        break;
+      }
+      
+      const condStr = cond.value.toLowerCase();
+      
+      // Special handling for boolean values with "Да"/"Нет"
+      if (typeof rowVal === 'boolean') {
+        const expectedBool = condStr === 'да';
         switch (cond.operator) {
-          case '>':
-            if (isNaN(+rowStr) || isNaN(+condStr)) {
-              allMatch = false; 
-            } else {
-              if (+rowStr <= +condStr) allMatch = false;
-            }
-            break;
-          case '<':
-            if (isNaN(+rowStr) || isNaN(+condStr)) {
-              allMatch = false;
-            } else {
-              if (+rowStr >= +condStr) allMatch = false;
-            }
-            break;
           case '=':
-            // Частичное совпадение (includes) или строгое? Допустим includes.
-            if (!rowStr.includes(condStr)) {
-              allMatch = false;
-            }
+            if (rowVal !== expectedBool) allMatch = false;
             break;
           case '!=':
-            // Нестрогое сравнение (строка != строка)
-            if (rowStr === condStr) {
-              allMatch = false;
-            }
+            if (rowVal === expectedBool) allMatch = false;
             break;
           default:
             allMatch = false;
         }
-        if (!allMatch) break; // прекращаем проверять остальные условия группы
+        if (!allMatch) break;
+        continue;
       }
-      if (allMatch) {
-        return true; // хоть одна группа совпала => OR => true
+      
+      const rowStr = String(rowVal).toLowerCase();
+
+      switch (cond.operator) {
+        case '>':
+          if (isNaN(+rowStr) || isNaN(+condStr)) {
+            allMatch = false; 
+          } else {
+            if (+rowStr <= +condStr) allMatch = false;
+          }
+          break;
+        case '<':
+          if (isNaN(+rowStr) || isNaN(+condStr)) {
+            allMatch = false;
+          } else {
+            if (+rowStr >= +condStr) allMatch = false;
+          }
+          break;
+        case '=':
+          if (!rowStr.includes(condStr)) {
+            allMatch = false;
+          }
+          break;
+        case '!=':
+          if (rowStr === condStr) {
+            allMatch = false;
+          }
+          break;
+        default:
+          allMatch = false;
       }
+      if (!allMatch) break;
     }
-  
-    return false;
+    if (allMatch) {
+      return true;
+    }
   }
+
+  return false;
+}

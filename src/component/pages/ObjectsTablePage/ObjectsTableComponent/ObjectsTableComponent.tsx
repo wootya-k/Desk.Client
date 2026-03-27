@@ -1,10 +1,12 @@
 import React, { useState, useMemo, useRef, useCallback } from 'react';
 import styles from './ObjectsTableComponent.module.css';
 import DeleteButton from '@commons/DeleteButton/DeleteButton';
+import RestoreButton from '@commons/RestoreButton/RestoreButton';
 import ViewButton from '@commons/ViewButton/ViewButton';
 
 interface Row {
   id: string;
+  status: boolean; // ✅ Добавили поле status
   [key: string]: unknown;
 }
 
@@ -19,6 +21,7 @@ interface ObjectTableComponentProps {
   columns: Column[];
   onEdit: (id: string) => void;
   onDelete: (id: string, originalRow: Row) => void;
+  onRestore: (id: string) => void;
   onColumnOrderChange?: (newColumns: Column[]) => void;
 }
 
@@ -27,6 +30,7 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
   columns,
   onEdit,
   onDelete,
+  onRestore,
   onColumnOrderChange,
 }) => {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -35,31 +39,14 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
   const [hoveredColumn, setHoveredColumn] = useState<string | null>(null);
   const [resizingColumn, setResizingColumn] = useState<string | null>(null);
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
-  
-  // === НОВАЯ D&D СИСТЕМА ===
-  const [dragState, setDragState] = useState<{
-    isDragging: boolean;
-    draggedAccessor: string | null;
-    insertionIndex: number | null;
-    startX: number;
-    startScrollLeft: number;
-  }>({
-    isDragging: false,
-    draggedAccessor: null,
-    insertionIndex: null,
-    startX: 0,
-    startScrollLeft: 0
-  });
 
   const tooltipTimeoutRef = useRef<number | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const autoScrollRef = useRef<number | null>(null);
-  const clickThreshold = 5;
 
-  const visibleColumns = useMemo(() => 
-    columns.filter(column => column.visible), 
-  [columns]);
+  const visibleColumns = useMemo(() =>
+    columns.filter(column => column.visible),
+    [columns]);
 
   const isNarrowTable = visibleColumns.length <= 3;
 
@@ -170,6 +157,12 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
   };
 
   const renderCellContent = (value: unknown, accessor: string) => {
+    if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+      return (
+        <span className={styles.emptyCell}>[нет данных]</span>
+      );
+    }
+
     const strValue = String(value ?? '');
     if (typeof value === 'boolean') {
       return (
@@ -180,6 +173,7 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
         </div>
       );
     }
+    
     if (typeof value === 'string') {
       const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (isoDateRegex.test(value)) {
@@ -187,159 +181,40 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
         return `${day}.${month}.${year}`;
       }
     }
+
     return strValue;
   };
 
-  // === НОВАЯ D&D СИСТЕМА - ПРОСТАЯ И РАБОЧАЯ ===
-  const startColumnDrag = (accessor: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    
-    const container = containerRef.current;
-    if (!container || !tableRef.current) return;
-
-    const startX = e.clientX;
-    const startScrollLeft = container.scrollLeft;
-    
-    setDragState({
-      isDragging: true,
-      draggedAccessor: accessor,
-      insertionIndex: null,
-      startX,
-      startScrollLeft
-    });
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      if (!dragState.isDragging) return;
-
-      // Автоскролл при подходе к краям
-      const rect = container.getBoundingClientRect();
-      const edgeMargin = 50;
-      const speed = 15;
-      
-      if (autoScrollRef.current) clearInterval(autoScrollRef.current);
-      
-      if (moveEvent.clientX < rect.left + edgeMargin) {
-        autoScrollRef.current = window.setInterval(() => {
-          container.scrollLeft -= speed;
-        }, 20);
-      } else if (moveEvent.clientX > rect.right - edgeMargin) {
-        autoScrollRef.current = window.setInterval(() => {
-          container.scrollLeft += speed;
-        }, 20);
-      }
-
-      // Обновляем позицию линии вставки
-      updateInsertionLine(moveEvent.clientX);
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      
-      if (autoScrollRef.current) {
-        clearInterval(autoScrollRef.current);
-        autoScrollRef.current = null;
-      }
-
-      // Применяем изменения порядка колонок
-      applyColumnReorder();
-      
-      setDragState({
-        isDragging: false,
-        draggedAccessor: null,
-        insertionIndex: null,
-        startX: 0,
-        startScrollLeft: 0
-      });
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const updateInsertionLine = (clientX: number) => {
-    if (!tableRef.current || !dragState.draggedAccessor) return;
-
-    const tableRect = tableRef.current.getBoundingClientRect();
-    const headers = Array.from(tableRef.current.querySelectorAll('thead th:not(.actionsHeader)')) as HTMLElement[];
-    
-    let newInsertionIndex = headers.length;
-    
-    for (let i = 0; i < headers.length; i++) {
-      const header = headers[i];
-      const headerRect = header.getBoundingClientRect();
-      const headerCenter = headerRect.left + headerRect.width / 2;
-      
-      if (clientX < headerCenter) {
-        newInsertionIndex = i;
-        break;
-      }
-    }
-    
-    setDragState(prev => ({
-      ...prev,
-      insertionIndex: newInsertionIndex
-    }));
-  };
-
-  const applyColumnReorder = () => {
-    const { draggedAccessor, insertionIndex } = dragState;
-    
-    if (!draggedAccessor || insertionIndex === null) return;
-
-    const oldIndex = visibleColumns.findIndex(col => col.accessor === draggedAccessor);
-    if (oldIndex === -1 || oldIndex === insertionIndex) return;
-
-    console.log('🔄 Перемещение колонки:', {
-      from: oldIndex,
-      to: insertionIndex,
-      column: draggedAccessor
-    });
-
-    // Создаем новый порядок ВИДИМЫХ колонок
-    const newVisibleColumns = [...visibleColumns];
-    const [movedColumn] = newVisibleColumns.splice(oldIndex, 1);
-    newVisibleColumns.splice(insertionIndex, 0, movedColumn);
-
-    // Создаем полный массив колонок с учетом невидимых
-    const invisibleColumns = columns.filter(col => !col.visible);
-    const newAllColumns = [...newVisibleColumns, ...invisibleColumns];
-
-    // Вызываем колбэк для сохранения
-    onColumnOrderChange?.(newAllColumns);
-  };
-
-  const getInsertionLinePosition = (): number | null => {
-    const { insertionIndex } = dragState;
-    if (insertionIndex === null || !tableRef.current) return null;
-
-    const headers = Array.from(tableRef.current.querySelectorAll('thead th:not(.actionsHeader)')) as HTMLElement[];
-    
-    if (insertionIndex === 0) {
-      return 0;
-    } else if (insertionIndex >= headers.length) {
-      const lastHeader = headers[headers.length - 1];
-      return lastHeader.offsetLeft + lastHeader.offsetWidth;
+  // ✅ Функция для рендера кнопки в зависимости от статуса
+  const renderActionButton = (row: Row) => {
+    if (row.status === true) {
+      // Активный объект — показываем кнопку удаления
+      return (
+        <DeleteButton
+          onClick={() => onDelete(row.id, row)}
+          size={38}
+          width='1px'
+        />
+      );
     } else {
-      const targetHeader = headers[insertionIndex];
-      return targetHeader.offsetLeft;
+      // Неактивный объект — показываем кнопку восстановления
+      return (
+        <RestoreButton
+          onClick={() => onRestore(row.id)}
+          size={30}
+          width='1px'
+        />
+      );
     }
   };
-
-  const insertionLinePosition = getInsertionLinePosition();
 
   return (
     <>
-      <section 
-        className={styles.container} 
+      <section
+        className={styles.container}
         ref={containerRef}
-        onMouseMove={(e) => {
-          if (dragState.isDragging) {
-            updateInsertionLine(e.clientX);
-          }
-        }}
       >
-        <table 
+        <table
           className={`${styles.table} ${isNarrowTable ? styles.narrowTable : styles.wideTable}`}
           ref={tableRef}
         >
@@ -348,30 +223,17 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
               {visibleColumns.map((column, index) => {
                 const width = getColumnWidth(column.accessor);
                 const alignment = columnAlignment[column.accessor];
-                const isBeingDragged = dragState.draggedAccessor === column.accessor;
-                
+
                 return (
                   <th
                     key={column.accessor}
-                    className={`${styles.headerCell} ${hoveredColumn === column.accessor ? styles.columnHovered : ''} ${alignment === 'center' ? styles.centeredHeader : styles.leftAlignedHeader} ${isBeingDragged ? styles.draggingColumn : ''}`}
-                    style={{ 
+                    className={`${styles.headerCell} ${hoveredColumn === column.accessor ? styles.columnHovered : ''} ${alignment === 'center' ? styles.centeredHeader : styles.leftAlignedHeader}`}
+                    style={{
                       width: `${width}px`,
-                      opacity: isBeingDragged ? 0.5 : 1
                     }}
                     onMouseEnter={() => setHoveredColumn(column.accessor)}
                     onMouseLeave={() => setHoveredColumn(null)}
-                    onMouseDown={(e) => {
-                      if (e.button === 0) {
-                        // ЛКМ - начинаем перетаскивание
-                        startColumnDrag(column.accessor, e);
-                      }
-                    }}
-                    onClick={(e) => {
-                      // Сортировка только по клику, если не было перетаскивания
-                      if (!dragState.isDragging) {
-                        handleSort(column.accessor);
-                      }
-                    }}
+                    onClick={() => handleSort(column.accessor)}
                   >
                     <div className={alignment === 'center' ? styles.centeredContent : styles.leftAlignedContent}>
                       {column.title}
@@ -379,7 +241,7 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
                         {getSortIndicator(column.accessor)}
                       </span>
                     </div>
-                    <div 
+                    <div
                       className={styles.columnResizer}
                       onMouseDown={(e) => handleResizeStart(column.accessor, e)}
                     />
@@ -399,15 +261,13 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
                 {visibleColumns.map(column => {
                   const width = getColumnWidth(column.accessor);
                   const alignment = columnAlignment[column.accessor];
-                  const isBeingDragged = dragState.draggedAccessor === column.accessor;
-                  
+
                   return (
-                    <td 
+                    <td
                       key={column.accessor}
                       className={`${styles.cell} ${hoveredColumn === column.accessor ? styles.columnHovered : ''} ${alignment === 'center' ? styles.centeredCell : styles.leftAlignedCell}`}
-                      style={{ 
+                      style={{
                         width: `${width}px`,
-                        opacity: isBeingDragged ? 0.3 : 1
                       }}
                       onMouseEnter={(e) => {
                         setHoveredColumn(column.accessor);
@@ -424,29 +284,22 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
                 })}
                 <td className={styles.actionsCell}>
                   <div className={styles.actionsContainer}>
-                    <ViewButton onClick={() => onEdit(row.id)} />
-                    <DeleteButton onClick={() => onDelete(row.id, row)} />
+                    <ViewButton
+                      onClick={() => onEdit(row.id)}
+                      size={26}
+                    />
+                    {/* ✅ Условный рендер кнопки в зависимости от статуса */}
+                    {renderActionButton(row)}
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-
-        {/* Линия вставки - ВО ВСЮ ВЫСОТУ ТАБЛИЦЫ */}
-        {dragState.isDragging && insertionLinePosition !== null && (
-          <div
-            className={styles.insertionLine}
-            style={{ 
-              left: `${insertionLinePosition}px`,
-              height: tableRef.current ? `${tableRef.current.offsetHeight}px` : '100%'
-            }}
-          />
-        )}
       </section>
 
       {tooltip && (
-        <div 
+        <div
           className={styles.tooltip}
           style={{
             left: tooltip.x + 10,

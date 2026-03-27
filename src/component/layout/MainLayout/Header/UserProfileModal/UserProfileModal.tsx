@@ -49,9 +49,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
 
   const handleSave = () => {
     if (!user) return;
-    
-    console.log('Saving user:', user);
-    // Реальный вызов API для сохранения
     setInitialUser(user);
   };
 

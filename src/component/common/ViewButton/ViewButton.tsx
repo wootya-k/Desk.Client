@@ -9,7 +9,7 @@ interface ViewButtonProps {
   width?: string;
 }
 
-const ViewButton: React.FC<ViewButtonProps> = ({ size = 25, onClick, height = "40px", width = "40px" }) => {
+const ViewButton: React.FC<ViewButtonProps> = ({ size = 26, onClick, height = "40px", width = "1px" }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (

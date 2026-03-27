@@ -28,6 +28,7 @@ export interface RawDetailItem {
 export interface RawDataItem {
     id: string; 
     value: string;
+    status: boolean
 }
 
 export interface ObjectView {
@@ -52,6 +53,7 @@ export interface DetailEntity {
 export interface ObjectRecord {
     id: string;
     value: string;
+    status: boolean;
 }
 
 export interface ObjectType {

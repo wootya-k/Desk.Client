@@ -5,25 +5,30 @@ import ObjectEditModal from './ObjectEditModal/ObjectEditModal';
 import ObjectTableComponent from './ObjectsTableComponent/ObjectsTableComponent';
 import ColumnSettingsModal from './ColumnSettingsModal/ColumnSettingsModal';
 import TableHeaderToolbar from './TableHeaderToolbar/TableHeaderToolbar';
-import { fetchAllObjects, deleteObjectById } from '@services/ObjectService';
+import { fetchAllObjects, restoreObjectById, deleteObjectById } from '@services/ObjectService';
 import { fetchFieldTitlesById } from '@services/TableService';
 import DeleteConfirmationModal from '@shared/DeleteConfirmationModal/DeleteConfirmationModal';
 import FavoritesModal from './FavoritesModal/FavoritesModal';
-import { getFavoriteQueries, saveFavoriteQuery, deleteFavoriteQuery, SavedQuery } from '@services/QueryService';
+import { updateFavoriteQuery, getFavoriteQueries, saveFavoriteQuery, deleteFavoriteQuery, SavedQuery } from '@services/QueryService';
 import {
   parseSearchQuery,
   checkRowAgainstConditionGroups,
 } from 'utils/searchUtils';
 import { setExpiringItem, getExpiringItem } from 'utils/LocalStorageUtils';
 import styles from './ObjectsTablePage.module.css';
+import RestoreConfirmationModal from '@shared/RestoreConfirmationModal/RestoreConfirmationModal'
+import FilledColorButton from '@commons/FilledColorButton/FilledColorButton';
+import SaveQueryModal from './SaveQueryModal/SaveQueryModal';
 
 interface FetchObjectItem {
   id: string;
   value: string;
+  status: boolean;
 }
 
 export interface Row extends Record<string, unknown> {
   id: string;
+  status: boolean;
 }
 
 export interface ColumnConfig {
@@ -40,44 +45,32 @@ interface TableConfig {
 }
 
 const saveTableConfig = (tableType: string, columns: ColumnConfig[]): void => {
-  try {
-    const existingConfigStr = localStorage.getItem(TABLE_CONFIG_KEY);
-    const existingConfig: TableConfig = existingConfigStr ? JSON.parse(existingConfigStr) : {};
-    
-    existingConfig[tableType] = columns;
-    
-    localStorage.setItem(TABLE_CONFIG_KEY, JSON.stringify(existingConfig));
-    
-    // Дублируем в куки для совместимости
-    setExpiringItem(`columnsConfig_${tableType}`, JSON.stringify(columns), 365);
-    
-    console.log(`💾 Конфигурация сохранена для ${tableType}:`, columns.length, 'колонок');
-  } catch (error) {
-    console.error('❌ Ошибка сохранения конфигурации:', error);
-  }
+  const existingConfigStr = localStorage.getItem(TABLE_CONFIG_KEY);
+  const existingConfig: TableConfig = existingConfigStr ? JSON.parse(existingConfigStr) : {};
+
+  existingConfig[tableType] = columns;
+
+  localStorage.setItem(TABLE_CONFIG_KEY, JSON.stringify(existingConfig));
+
+  setExpiringItem(`columnsConfig_${tableType}`, JSON.stringify(columns), 365);
 };
 
 const loadTableConfig = (tableType: string): ColumnConfig[] | null => {
   try {
-    // Сначала пробуем localStorage
     const configStr = localStorage.getItem(TABLE_CONFIG_KEY);
     if (configStr) {
       const config: TableConfig = JSON.parse(configStr);
       if (config[tableType]) {
-        console.log(`📂 Конфигурация загружена из localStorage для ${tableType}`);
         return config[tableType];
       }
     }
-    
-    // Потом пробуем куки для обратной совместимости
+
     const cookieConfig = getExpiringItem(`columnsConfig_${tableType}`);
     if (cookieConfig) {
       const columns = JSON.parse(cookieConfig);
-      console.log(`📂 Конфигурация загружена из куки для ${tableType}`);
       return columns;
     }
-    
-    console.log(`❌ Конфигурация не найдена для ${tableType}`);
+
     return null;
   } catch (error) {
     console.error('❌ Ошибка загрузки конфигурации:', error);
@@ -107,15 +100,93 @@ const ObjectsTablePage: React.FC = () => {
   const [isShiftPressed, setIsShiftPressed] = useState(false);
   const [tableWidth, setTableWidth] = useState(0);
   const [hasVerticalScroll, setHasVerticalScroll] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'true' | 'false' | 'all'>('true');
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [objectToRestore, setObjectToRestore] = useState<{ id: string } | null>(null);
 
-  // === ОТЛАДОЧНЫЕ ЛОГИ ===
-  useEffect(() => {
-    console.group(`🔧 ObjectsTablePage Debug - ${type}`);
-    console.log('📊 Columns state:', columns);
-    console.log('📋 Default columns:', defaultColumns);
-    console.log('🔍 Type:', type);
-    console.groupEnd();
-  }, [columns, defaultColumns, type]);
+  // ✅ НОВЫЕ СОСТОЯНИЯ ДЛЯ ЗАГРУЗКИ И ОШИБОК
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+
+  const handleSaveClick = useCallback(() => {
+    if (!searchTerm.trim()) return;
+    setIsSaveModalOpen(true);
+  }, [searchTerm]);
+
+  const handleConfirmSave = useCallback(async (name: string) => {
+    if (!type) {
+      console.error('Type не определён');
+      return;
+    }
+
+    try {
+      // ← 3 аргумента: type, name, body
+      await saveFavoriteQuery(type, name, searchTerm);
+      setIsSaveModalOpen(false);
+
+      // Обновляем список избранного
+      const queries = await getFavoriteQueries(type);
+      setSavedQueries(queries);
+    } catch (err) {
+      console.error('Ошибка сохранения запроса:', err);
+      alert('Не удалось сохранить запрос');
+    }
+  }, [type, searchTerm]);
+
+  const openRestoreModal = useCallback((id: string) => {
+    setObjectToRestore({ id });
+    setIsRestoreModalOpen(true);
+  }, []);
+
+  const handleConfirmRestore = useCallback(async () => {
+    if (!objectToRestore) return;
+
+    try {
+      await restoreObjectById(objectToRestore.id);
+
+      setRows(prev => prev.map(row =>
+        row.id === objectToRestore.id ? { ...row, status: true } : row
+      ));
+
+      console.log('Объект восстановлен:', objectToRestore.id);
+    } catch (err) {
+      console.error('Ошибка восстановления:', err);
+    } finally {
+      setIsRestoreModalOpen(false);
+      setObjectToRestore(null);
+    }
+  }, [objectToRestore]);
+
+  const handleCancelRestore = useCallback(() => {
+    setIsRestoreModalOpen(false);
+    setObjectToRestore(null);
+  }, []);
+
+  const handleUpdateFavoriteQuery = useCallback((id: number, name: string, body: string) => {
+    // 👈 ТОЛЬКО локальное обновление — без вызова API!
+    setSavedQueries(prev => prev.map(q =>
+      q.id === id ? { ...q, name, body } : q
+    ));
+  }, []);
+
+  const handleReorderFavoriteQuery = useCallback(async (id: number, newIndex: number) => {
+    try {
+      // Пересортировываем локально
+      setSavedQueries(prev => {
+        const newQueries = [...prev];
+        const index = newQueries.findIndex(q => q.id === id);
+        const [removed] = newQueries.splice(index, 1);
+        newQueries.splice(newIndex, 0, removed);
+        return newQueries;
+      });
+    } catch (err) {
+      console.error('Ошибка изменения порядка:', err);
+    }
+  }, []);
+
 
   const filteredRows = useMemo(() => {
     const raw = searchTerm.trim();
@@ -180,11 +251,11 @@ const ObjectsTablePage: React.FC = () => {
         resizeObserver.disconnect();
       };
     }
-  }, [filteredRows]);
+  }, [filteredRows, isLoading, error]);
 
   const handleFavoritesClick = useCallback(async () => {
     try {
-      const queries = await getFavoriteQueries();
+      const queries = await getFavoriteQueries(type);
       setSavedQueries(queries);
       setIsFavoritesModalOpen(true);
     } catch (err) {
@@ -201,24 +272,10 @@ const ObjectsTablePage: React.FC = () => {
     try {
       await deleteFavoriteQuery(id);
       setSavedQueries(prev => prev.filter(q => q.id !== id));
-      console.log('Запрос удалён из избранного');
     } catch (err) {
       console.error('Ошибка удаления запроса:', err);
     }
   }, []);
-
-  const handleSaveClick = useCallback(async () => {
-    if (!searchTerm.trim()) {
-      console.log('Нельзя сохранить пустой поисковый запрос');
-      return;
-    }
-    try {
-      await saveFavoriteQuery(searchTerm);
-      console.log('Поисковый запрос успешно сохранён в избранное!');
-    } catch (err) {
-      console.error('Ошибка сохранения запроса:', err);
-    }
-  }, [searchTerm]);
 
   const createDefaultColumns = useCallback((fieldTitles: Record<string, string>): ColumnConfig[] => {
     return Object.entries(fieldTitles).map(([eng, rus]) => ({
@@ -231,91 +288,89 @@ const ObjectsTablePage: React.FC = () => {
   const mergeColumns = useCallback(
     (savedColumns: ColumnConfig[], defaultColumns: ColumnConfig[]): ColumnConfig[] => {
       if (!savedColumns || savedColumns.length === 0) {
-        console.log('🔄 Используем колонки по умолчанию');
         return defaultColumns.map(col => ({ ...col }));
       }
 
-      console.log('🔄 Объединяем сохраненные колонки с дефолтными');
-      
       const mergedColumns: ColumnConfig[] = [];
       const savedAccessors = new Set(savedColumns.map(col => col.accessor));
-      
-      // Добавляем сохраненные колонки
+
       mergedColumns.push(...savedColumns.map(col => ({ ...col })));
-      
-      // Добавляем недостающие колонки из дефолтных
+
       defaultColumns.forEach(defaultCol => {
         if (!savedAccessors.has(defaultCol.accessor)) {
           mergedColumns.push({ ...defaultCol });
         }
       });
-      
+
       return mergedColumns;
     },
     []
   );
 
+  // ✅ ФУНКЦИЯ ДЛЯ ПОВТОРНОЙ ПОПЫТКИ
+  const handleRetry = useCallback(() => {
+    setRetryCount(prev => prev + 1);
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       if (!type) {
         console.log('❌ Type не определён, пропускаем загрузку');
+        setIsLoading(false);
         return;
       }
-      
-      console.log(`🔄 Загрузка данных для типа: ${type}`);
-      
+
+      setIsLoading(true);
+      setError(null);
+
       try {
         const [data, schemaResponse] = await Promise.all([
-          fetchAllObjects(type),
+          fetchAllObjects(type, { status: statusFilter }),
           fetchFieldTitlesById(type),
         ]);
-        
+
         const { objectType, fieldTitles } = schemaResponse;
         setObjectType(objectType);
-        
+
         const newMap: Record<string, string> = {};
         Object.entries(fieldTitles).forEach(([en, ru]) => {
           newMap[ru.toLowerCase()] = en;
         });
         setRuToEnMap(newMap);
-        
+
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
-        
-        // Загружаем сохраненную конфигурацию
+
         const savedConfig = loadTableConfig(type);
         let initialColumns: ColumnConfig[];
-        
+
         if (savedConfig && savedConfig.length > 0) {
-          console.log('✅ Используем сохраненную конфигурацию колонок');
           initialColumns = mergeColumns(savedConfig, defaultCols);
         } else {
-          console.log('ℹ️ Используем колонки по умолчанию');
           initialColumns = defaultCols.map(col => ({ ...col }));
         }
-        
+
         const parsedRows: Row[] = (data as FetchObjectItem[]).map((item) => {
           const obj = JSON.parse(item.value);
-          return { ...obj, id: item.id };
+          return {
+            ...obj,
+            id: item.id,
+            status: item.status
+          };
         });
-        
+
         setColumns(initialColumns);
         setRows(parsedRows);
-        
-        console.log('✅ Данные успешно загружены:', {
-          objectType,
-          columnsCount: initialColumns.length,
-          rowsCount: parsedRows.length,
-          hasSavedConfig: !!savedConfig
-        });
-        
+        setIsLoading(false);
       } catch (err) {
         console.error('❌ Ошибка загрузки:', err);
+        setError(err instanceof Error ? err.message : 'Не удалось загрузить данные');
+        setIsLoading(false);
       }
     };
-    
+
     loadData();
-  }, [type, createDefaultColumns, mergeColumns]);
+  }, [type, statusFilter, retryCount, createDefaultColumns, mergeColumns]);
 
   const performImmediateDelete = useCallback(async (id: string, row: Row) => {
     try {
@@ -379,53 +434,30 @@ const ObjectsTablePage: React.FC = () => {
     setIsModalOpen(true);
   }, []);
 
-  // === ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ПРИМЕНЕНИЯ НАСТРОЕК ===
   const handleApplySettings = useCallback((updatedColumns: ColumnConfig[]) => {
     if (!type) {
       console.error('❌ Не удалось сохранить конфигурацию: type не определён');
       return;
     }
-    
-    console.log('💾 Применение настроек колонок:', updatedColumns);
-    
-    // Сохраняем конфигурацию
     saveTableConfig(type, updatedColumns);
-    
-    // Обновляем состояние
     setColumns(updatedColumns);
     setIsModalOpen(false);
-    
-    console.log('✅ Настройки успешно применены и сохранены');
   }, [type]);
 
   const handleResetSettings = useCallback(() => {
-    console.log('🔄 Сброс настроек к значениям по умолчанию');
     const resetColumns = defaultColumns.map(col => ({ ...col }));
-    
-    // Сохраняем сброшенные настройки
     if (type) {
       saveTableConfig(type, resetColumns);
     }
-    
     return resetColumns;
   }, [defaultColumns, type]);
 
-  // === ИСПРАВЛЕННЫЙ ОБРАБОТЧИК ИЗМЕНЕНИЯ ПОРЯДКА КОЛОНОК ===
   const handleColumnOrderChange = useCallback((newColumns: ColumnConfig[]) => {
-    console.log('🔄 Изменение порядка колонок через D&D:', newColumns);
-    
     if (!type) {
-      console.error('❌ Не удалось сохранить порядок колонок: type не определён');
       return;
     }
-    
-    // Сохраняем новую конфигурацию
     saveTableConfig(type, newColumns);
-    
-    // Обновляем состояние
     setColumns(newColumns);
-    
-    console.log('✅ Порядок колонок успешно сохранен');
   }, [type]);
 
   const conditionGroups = useMemo(() => parseSearchQuery(searchTerm.trim().toLowerCase()), [searchTerm]);
@@ -436,63 +468,64 @@ const ObjectsTablePage: React.FC = () => {
     closeEditModal();
     const reloadData = async () => {
       if (!type) return;
+
+      setIsLoading(true);
+      setError(null);
+
       try {
         const [data, schemaResponse] = await Promise.all([
-          fetchAllObjects(type),
+          fetchAllObjects(type, { status: statusFilter }),
           fetchFieldTitlesById(type),
         ]);
         const { objectType, fieldTitles } = schemaResponse;
         setObjectType(objectType);
+
         const newMap: Record<string, string> = {};
         Object.entries(fieldTitles).forEach(([en, ru]) => {
           newMap[ru.toLowerCase()] = en;
         });
         setRuToEnMap(newMap);
+
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
-        
-        // Загружаем сохраненную конфигурацию
+
         const savedConfig = loadTableConfig(type);
         let initialColumns: ColumnConfig[];
-        
+
         if (savedConfig && savedConfig.length > 0) {
           initialColumns = mergeColumns(savedConfig, defaultCols);
         } else {
           initialColumns = defaultCols.map(col => ({ ...col }));
         }
-        
+
         const parsedRows: Row[] = (data as FetchObjectItem[]).map((item) => {
           const obj = JSON.parse(item.value);
-          return { ...obj, id: item.id };
+          return {
+            ...obj,
+            id: item.id,
+            status: item.status
+          };
         });
-        
+
         setColumns(initialColumns);
         setRows(parsedRows);
+        setIsLoading(false);
       } catch (err) {
         console.error('Ошибка перезагрузки данных:', err);
+        setError(err instanceof Error ? err.message : 'Не удалось обновить данные');
+        setIsLoading(false);
       }
     };
     reloadData();
-  }, [type, closeEditModal, createDefaultColumns, mergeColumns]);
+  }, [type, statusFilter, closeEditModal, createDefaultColumns, mergeColumns]);
 
-  const hasOpenModal = 
+  const hasOpenModal =
     isNewObjectModalOpen ||
     isEditModalOpen ||
     isModalOpen ||
     isDeleteModalOpen ||
     isFavoritesModalOpen;
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !hasOpenModal) {
-        handleBackClick();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [hasOpenModal, handleBackClick]);
 
   return (
     <div className={styles.pageContainer}>
@@ -510,21 +543,52 @@ const ObjectsTablePage: React.FC = () => {
         ruFields={ruFields}
         rowsData={rows}
         ruToEnMap={ruToEnMap}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        filteredRowsCount={filteredRows.length}
+        error={error != null || isLoading}
+        savedQueries={savedQueries.map(q => ({ name: q.name, body: q.body }))}
       />
       <main className={styles.contentLayout} ref={tableContainerRef}>
-        <ObjectTableComponent
-          rows={filteredRows}
-          columns={columns}
-          onEdit={handleEdit}
-          onDelete={openDeleteModal}
-          onColumnOrderChange={handleColumnOrderChange}
-        />
-        {hasVerticalScroll && (
-          <div 
+        {/* ✅ СОСТОЯНИЕ ЗАГРУЗКИ */}
+        {isLoading ? (
+          <div className={styles.loadingContainer}>
+            <div className={styles.spinner} />
+            <div className={styles.loadingText}>
+              Загрузка данных...
+            </div>
+          </div>
+        ) : error ? (
+          /* ✅ СОСТОЯНИЕ ОШИБКИ */
+          <div className={styles.errorContainer}>
+            <h3 className={styles.errorTitle}>Не удалось загрузить данные</h3>
+            <p className={styles.errorMessage}>
+              {error}
+            </p>
+            <FilledColorButton
+              onClick={handleRetry}
+            >
+              Повторить попытку
+            </FilledColorButton>
+          </div>
+        ) : (
+          /* ✅ ТАБЛИЦА С ДАННЫМИ */
+          <ObjectTableComponent
+            rows={filteredRows}
+            columns={columns}
+            onEdit={handleEdit}
+            onDelete={openDeleteModal}
+            onRestore={openRestoreModal}
+            onColumnOrderChange={handleColumnOrderChange}
+          />
+        )}
+
+        {hasVerticalScroll && !isLoading && !error && filteredRows.length > 0 && (
+          <div
             className={styles.fixedHorizontalScroll}
             ref={fixedScrollRef}
           >
-            <div 
+            <div
               className={styles.fixedHorizontalScrollContent}
               style={{ width: `${tableWidth}px` }}
             />
@@ -559,7 +623,8 @@ const ObjectsTablePage: React.FC = () => {
             favorites={savedQueries}
             onSelect={handleSelectFavoriteQuery}
             onDelete={handleDeleteFavoriteQuery}
-            title="Избранное"
+            title={objectType}
+            type={type}
           />,
           document.getElementById('modal-root')!
         )}
@@ -571,6 +636,8 @@ const ObjectsTablePage: React.FC = () => {
           id={editingObjectId}
           onSaveSuccess={handleSaveSuccess}
           title="Редактирование объекта"
+          // ✅ Передаём точный статус из rows
+          isDeadObject={rows.find(r => r.id === editingObjectId)?.status === false}
         />
       )}
       {isNewObjectModalOpen && type && (
@@ -582,6 +649,20 @@ const ObjectsTablePage: React.FC = () => {
           title="Создание нового объекта"
         />
       )}
+      {isRestoreModalOpen &&
+        ReactDOM.createPortal(
+          <RestoreConfirmationModal
+            onConfirm={handleConfirmRestore}
+            onCancel={handleCancelRestore}
+          />,
+          document.getElementById('modal-root')!
+        )}
+      <SaveQueryModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        onSave={handleConfirmSave}
+        preview={searchTerm}
+      />
     </div>
   );
 };

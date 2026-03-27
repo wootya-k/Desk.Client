@@ -8,28 +8,16 @@ export interface ReportView {
   metaTarget: string;
 }
 
-export const reportListView = async (): Promise<ReportView[]> => {
-    const url = await buildUrl(`/api/Reports/ReportListView`);
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    return await response.json();
-};
-
 /**
  * Проверка доступности печати для типа объекта
  * @param id Тип объекта
  * @returns {Promise<boolean>} Доступна ли печать
  */
 export const checkPrintable = async (id: string): Promise<boolean> => {
-    const url = await buildUrl(`/api/Reports/${id}/Check`);
+    const url = await buildUrl(`/api/reports/${id}/check`);
     const response = await fetch(url);
     
     if (response.status === 204) {
-        // 204 No Content - возвращаем false
         return false;
     }
     
@@ -37,100 +25,55 @@ export const checkPrintable = async (id: string): Promise<boolean> => {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    // Для статуса 200 читаем ответ как текст
     const text = await response.text();
-    console.log('Ответ сервера:', text);
-
-    // Если есть любой текст (непустой) - возвращаем true
     return text.length > 0;
 };
 
-
 /**
- * Генерация отчета
+ * Генерация и скачивание отчета
  * @param id ID объекта
- * @returns {Promise<Blob>} Сгенерированный отчет
+ * @param type Тип отчета (шаблона)
+ * @returns {Promise<void>} Файл скачивается автоматически с именем из заголовка
  */
-export const generateReport = async (id: string): Promise<Blob> => {
-    const url = await buildUrl(`/api/Reports/${id}/Generate`);
+export const generateReport = async (id: string, type: string): Promise<void> => {
+    const url = await buildUrl(`/api/reports/${id}/generate/${type}`);
     const response = await fetch(url, { method: 'POST' });
     
     if (!response.ok) {
-        throw new Error('Ошибка генерации отчета');
+        const errorText = await response.text().catch(() => 'Неизвестная ошибка');
+        throw new Error(`Ошибка генерации отчета: ${errorText}`);
     }
     
-    return await response.blob();
-};
-
-/**
- * Получение списка типов отчетов
- * @returns {Promise<ReportType[]>} Список типов отчетов
- */
-export const fetchReportTypes = async (): Promise<ReportType[]> => {
-    const url = await buildUrl('/api/Reports/Types');
-    const response = await fetch(url);
+    // ✅ Извлекаем имя файла — пробуем несколько вариантов заголовка
+    const contentDisposition = 
+        response.headers.get('Content-Disposition') || 
+        response.headers.get('content-disposition');
     
-    if (!response.ok) {
-        throw new Error('Ошибка получения типов отчетов');
+    let fileName = `report_${type}.docx`; // fallback
+    
+    if (contentDisposition) {
+        // Вариант 1: filename*=UTF-8''encoded_name (RFC 5987)
+        const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;\s"]+)/i);
+        if (utf8Match?.[1]) {
+            fileName = decodeURIComponent(utf8Match[1]);
+        } 
+        // Вариант 2: filename="name" или filename=name
+        else {
+            const regularMatch = contentDisposition.match(/filename=["']?([^;"'\s]+)["']?/i);
+            if (regularMatch?.[1]) {
+                fileName = regularMatch[1];
+            }
+        }
     }
     
-    return await response.json();
-};
-
-
-export interface ReportType {
-  id: string;
-  name: string;
-  intervalDays: number;
-  objectTypeId: string;
-}
-/**
- * Создание нового типа отчета
- * @param data Данные для создания
- * @returns {Promise<ReportType>} Созданный тип отчета
- */
-export const createReportType = async (data: Omit<ReportType, 'id'>): Promise<ReportType> => {
-    const url = await buildUrl('/api/Reports/Types');
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    
-    if (!response.ok) {
-        throw new Error('Ошибка создания типа отчета');
-    }
-    
-    return await response.json();
-};
-
-/**
- * Получение просроченных отчетов
- * @returns {Promise<Report[]>} Список просроченных отчетов
- */
-export const fetchOverdueReports = async (): Promise<Report[]> => {
-    const url = await buildUrl('/api/Reports/Overdue');
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-        throw new Error('Ошибка получения отчетов');
-    }
-    
-    return await response.json();
-};
-
-/**
- * Печать отчета
- * @param id ID отчета
- * @returns {Promise<Blob>} PDF-документ
- */
-export const printReport = async (id: string): Promise<Blob> => {
-    const url = await buildUrl(`/api/Reports/Print/${id}`);
-    const response = await fetch(url, { method: 'POST' });
-    
-    if (!response.ok) {
-        throw new Error('Ошибка печати отчета');
-    }
-    
-    return await response.blob();
+    // Скачивание
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
 };

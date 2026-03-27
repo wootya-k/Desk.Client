@@ -4,15 +4,21 @@
   padding: 12px;
   background: #fff;
   position: relative;
+  /* ← li больше не меняет cursor, чтобы не вводить в заблуждение */
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
-.dragging {
-  opacity: 0.6;
-  background-color: #f9f9f9;
-}
-
+/* Визуальная подсказка: элемент "приподнимается" когда над ним дропают */
 .dragOver {
-  border-top: 2px solid #3498db;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.25);
+  border-color: #3498db;
+  z-index: 1;
+}
+
+/* Состояние "тащим" — полупрозрачный, но только если это источник драга */
+.dragging {
+  opacity: 0.7;
+  transform: scale(0.98);
 }
 
 .controlHeader {
@@ -33,18 +39,31 @@
   background: white;
   padding: 5px;
   border-radius: 4px;
-}
-
-.dragHandle {
-  cursor: grab;
-  padding: 2px 5px;
-  font-size: 16px;
-  color: #7f8c8d;
+  /* ← предотвращаем выделение текста в кнопках */
   user-select: none;
 }
 
+/* === Драг-хендл — теперь это единственная зона для начала драга === */
+.dragHandle {
+  cursor: grab;
+  padding: 4px 8px;
+  font-size: 18px;
+  color: #95a5a6;
+  user-select: none;
+  border-radius: 4px;
+  transition: background 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
 .dragHandle:hover {
-  color: #34495e;
+  color: #3498db;
+  background: #f8f9fa;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+  color: #2980b9;
 }
 
 .moveButtons {

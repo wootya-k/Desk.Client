@@ -1,4 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+// src/component/pages/HomePage/DraggableCategoryPanel/DraggableCategoryPanel.tsx
+
+import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { ObjectType } from '@models';
 import panelStyles from './DraggableCategoryPanel.module.css';
 import { setExpiringItem, getExpiringItem } from 'utils/LocalStorageUtils';
@@ -22,7 +24,7 @@ interface DraggableCategoryPanelProps {
     containerRef: React.RefObject<HTMLDivElement>;
 }
 
-const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
+const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanelProps>(({
     category,
     types,
     printableTypes,
@@ -39,7 +41,7 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
     selectedTypes,
     color,
     containerRef,
-}) => {
+}, ref) => {
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
     const [isResizing, setIsResizing] = useState(false);
@@ -47,7 +49,7 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
     const [listMaxHeight, setListMaxHeight] = useState<number | null>(null);
     const [isAtBoundary, setIsAtBoundary] = useState({ top: false, bottom: false, left: false, right: false });
 
-    const panelRef = useRef<HTMLDivElement>(null);
+    const internalPanelRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
     const scrollInterval = useRef<number | null>(null);
 
@@ -60,6 +62,14 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
 
     const cookieKeyHeight = `categoryPanelHeight_${category}`;
     const maxContentHeight = types.length * ITEM_HEIGHT;
+
+    // Экспортируем ref наружу через useImperativeHandle
+    useImperativeHandle(ref, () => {
+        if (internalPanelRef.current) {
+            return internalPanelRef.current;
+        }
+        return document.createElement('div');
+    }, []);
 
     useEffect(() => {
         const savedHeight = getExpiringItem(cookieKeyHeight);
@@ -83,11 +93,11 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
     }, [cookieKeyHeight]);
 
     const checkBoundaries = useCallback((newPosition: { x: number; y: number }) => {
-        if (!containerRef.current || !panelRef.current) return;
+        const panelEl = internalPanelRef.current;
+        if (!containerRef.current || !panelEl) return;
 
         const containerRect = containerRef.current.getBoundingClientRect();
         const containerScroll = containerRef.current;
-
         const scrollLeft = containerScroll.scrollLeft || 0;
         const scrollTop = containerScroll.scrollTop || 0;
 
@@ -127,14 +137,12 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
     };
 
     const handleMouseMove = useCallback((e: MouseEvent) => {
-        if (isDragging && panelRef.current) {
+        if (isDragging && internalPanelRef.current) {
             const newPosition = {
                 x: e.clientX - dragOffset.x,
                 y: e.clientY - dragOffset.y
             };
-
             checkBoundaries(newPosition);
-
             onPositionChange(newPosition);
         }
     }, [isDragging, dragOffset, onPositionChange, checkBoundaries]);
@@ -152,23 +160,20 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
         e.stopPropagation();
         onActivate();
         setIsResizing(true);
-        if (panelRef.current) {
+        if (internalPanelRef.current) {
             setResizeStart({
                 y: e.clientY,
-                panelHeight: panelRef.current.offsetHeight
+                panelHeight: internalPanelRef.current.offsetHeight
             });
         }
     };
 
     const handleResizeMove = useCallback((e: MouseEvent) => {
-        if (!isResizing || !panelRef.current) return;
-
+        if (!isResizing || !internalPanelRef.current) return;
         const deltaY = e.clientY - resizeStart.y;
         const newPanelHeight = resizeStart.panelHeight + deltaY;
-
         const minHeight = HEADER_HEIGHT + ITEM_HEIGHT + RESIZER_HEIGHT;
         if (newPanelHeight < minHeight) return;
-
         const contentHeight = newPanelHeight - HEADER_HEIGHT - RESIZER_HEIGHT - 2;
         setListMaxHeight(contentHeight);
     }, [isResizing, resizeStart, HEADER_HEIGHT, ITEM_HEIGHT, RESIZER_HEIGHT]);
@@ -196,18 +201,14 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
         }
     }, []);
 
-    // Обработчик для клавиатуры (Enter)
     const handleKeyDown = (typeId: string, panelId: string, index: number, e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
-            // Создаем искусственное MouseEvent для совместимости с onItemClick
             const syntheticEvent = {
-                stopPropagation: () => { },
+                stopPropagation: () => {},
                 ctrlKey: e.ctrlKey,
                 shiftKey: e.shiftKey,
                 metaKey: e.metaKey,
-                // Добавляем другие необходимые свойства MouseEvent
             } as unknown as React.MouseEvent;
-
             onItemClick(typeId, panelId, index, syntheticEvent);
         }
     };
@@ -232,11 +233,7 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
         if (isDragging || isResizing) {
             document.addEventListener('mousemove', handleMouseMove);
             document.addEventListener('mouseup', handleMouseUp);
-        } else {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
         }
-
         return () => {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
@@ -246,10 +243,7 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
     useEffect(() => {
         if (isResizing) {
             document.addEventListener('mousemove', handleResizeMove);
-        } else {
-            document.removeEventListener('mousemove', handleResizeMove);
         }
-
         return () => {
             document.removeEventListener('mousemove', handleResizeMove);
             stopScroll();
@@ -266,28 +260,19 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
     const handleListDrop = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-
         if (!listRef.current || !currentDragItem) return;
-
         const rect = listRef.current.getBoundingClientRect();
         const y = e.clientY - rect.top;
         const index = Math.floor(y / ITEM_HEIGHT);
-
         const safeIndex = Math.max(0, Math.min(index, types.length));
-
         onItemDrop(e, safeIndex, category);
     };
 
     const boundaryClass = Object.values(isAtBoundary).some(Boolean) ? panelStyles.atBoundary : '';
-    const boundaryTopClass = isAtBoundary.top ? panelStyles.topBoundary : '';
-    const boundaryBottomClass = isAtBoundary.bottom ? panelStyles.bottomBoundary : '';
-    const boundaryLeftClass = isAtBoundary.left ? panelStyles.leftBoundary : '';
-    const boundaryRightClass = isAtBoundary.right ? panelStyles.rightBoundary : '';
-
 
     return (
         <div
-            ref={panelRef}
+            ref={internalPanelRef}
             className={`${panelStyles.categoryPanel} ${boundaryClass}`}
             style={{
                 position: 'absolute',
@@ -295,6 +280,7 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
                 top: position.y,
                 zIndex: isActive ? 1000 : 1,
                 userSelect: isResizing ? 'none' : undefined,
+                pointerEvents: 'auto',
             }}
             onClick={handlePanelClick}
         >
@@ -327,13 +313,10 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
                 {types.map((type, index) => (
                     <li
                         key={type.id}
-                        className={`${panelStyles.navItem} ${currentDragItem?.itemId === type.id ? panelStyles.dragging : ''
-                            } ${selectedTypes.has(type.id) ? panelStyles.selected : ''
-                            }`}
+                        className={`${panelStyles.navItem} ${currentDragItem?.itemId === type.id ? panelStyles.dragging : ''} ${selectedTypes.has(type.id) ? panelStyles.selected : ''}`}
                         onClick={(e) => onItemClick(type.id, category, index, e)}
                         role="button"
                         tabIndex={0}
-                        aria-label={`Перейти к объектам типа ${type.name}`}
                         onKeyDown={(e) => handleKeyDown(type.id, category, index, e)}
                         draggable
                         onDragStart={(e) => handleDragStart(type, index, e)}
@@ -341,23 +324,17 @@ const DraggableCategoryPanel: React.FC<DraggableCategoryPanelProps> = ({
                     >
                         <span className={panelStyles.typeName}>{type.name}</span>
                         <div className={panelStyles.icons}>
-                            {/* Убрали отображение количества refs - только иконка принтера если нужно */}
-                            {printableTypes[type.id] && (
-                                <span className={panelStyles.printIcon} title="Доступна печать">
-                                    🖨️
-                                </span>
-                            )}
+                            {printableTypes[type.id] && <span className={panelStyles.printIcon}>🖨️</span>}
                         </div>
                     </li>
                 ))}
             </ul>
 
-            <div
-                className={panelStyles.resizeHandle}
-                onMouseDown={handleResizerMouseDown}
-            />
+            <div className={panelStyles.resizeHandle} onMouseDown={handleResizerMouseDown} />
         </div>
     );
-};
+});
+
+DraggableCategoryPanel.displayName = 'DraggableCategoryPanel';
 
 export default DraggableCategoryPanel;

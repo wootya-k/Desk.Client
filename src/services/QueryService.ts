@@ -4,11 +4,19 @@ import { buildUrl } from 'config';
 
 export interface SavedQuery {
   id: number;
+  name: string;
   body: string;
 }
 
-export const getFavoriteQueries = async (): Promise<SavedQuery[]> => {
-  const url = await buildUrl('/api/Auth/Queries');
+export const getFavoriteQueries = async (type?: string): Promise<SavedQuery[]> => {
+  const baseUrl = await buildUrl('/api/queries');
+
+  const url = new URL(baseUrl);
+
+  if (type) {
+    url.searchParams.append('type', type);
+  }
+
   const response = await fetch(url, {
     method: 'GET',
     credentials: 'include',
@@ -19,29 +27,86 @@ export const getFavoriteQueries = async (): Promise<SavedQuery[]> => {
   return response.json();
 };
 
-export const saveFavoriteQuery = async (query: string): Promise<void> => {
-  if (!query.trim()) {
+// QueryService.ts
+export const saveFavoriteQuery = async (
+  type: string,
+  name: string,
+  body: string
+): Promise<void> => {
+  if (!body.trim()) {
     throw new Error('Запрос не может быть пустым');
   }
-  const encodedQuery = encodeURIComponent(query);
-  const url = await buildUrl(`/api/Auth/?query=${encodedQuery}`);
+
+  const url = await buildUrl('/api/queries');
+
   const response = await fetch(url, {
     method: 'POST',
     credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ type, name, body }),
   });
+
   if (!response.ok) {
-    throw new Error(`Ошибка сохранения запроса: ${response.statusText}`);
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Ошибка сохранения запроса: ${errorText}`);
   }
 };
 
 // 👇 НОВОЕ: удаление по id
 export const deleteFavoriteQuery = async (id: number): Promise<void> => {
-  const url = await buildUrl(`/api/Auth/?id=${id}`);
+  const url = await buildUrl(`/api/queries/${id}`);
   const response = await fetch(url, {
     method: 'DELETE',
     credentials: 'include',
   });
   if (!response.ok) {
     throw new Error(`Ошибка удаления запроса: ${response.statusText}`);
+  }
+};
+
+
+// services/QueryService.ts
+
+export const updateFavoriteQuery = async (
+  id: number,
+  name: string,
+  body: string,
+  type: string  // 👈 НОВЫЙ обязательный параметр
+): Promise<void> => {
+  const url = await buildUrl(`/api/queries/${id}`);
+  
+  const response = await fetch(url, {
+    method: 'PUT',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    // 👈 Отправляем все 3 поля, как ждёт CreateQueryRequest
+    body: JSON.stringify({ type, name, body }),
+  });
+  
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Ошибка обновления запроса: ${response.statusText} ${text}`);
+  }
+};
+
+export const reorderFavoriteQueries = async (
+  queries: { id: number; order: number }[]
+): Promise<void> => {
+  // Если на бэкенде есть поле order/priority
+  const url = await buildUrl('/api/queries/reorder');
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ queries }),
+  });
+  if (!response.ok) {
+    throw new Error(`Ошибка изменения порядка: ${response.statusText}`);
   }
 };

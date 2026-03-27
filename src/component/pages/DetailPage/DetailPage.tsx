@@ -55,20 +55,15 @@ const DetailPage: FC = () => {
     const handleCreateOrUpdateObject = async () => {
         if (!formEntity || !formEntity.data || !formEntity.type || (!id && !type))
             return alert('Данные формы недоступны.');
-        
-        try {
-            let result;
 
-            if (id)
-                result = await updateObject(id, formEntity.data);
-            else
-                result = await createObject(formEntity.type, formEntity.data);
+        let result;
 
-            console.log(result ? 'Объект успешно обработан' : 'Не удалось обработать объект.');
-            navigate(`/view-objects/${type}`);
-        } catch (error) {
-            console.log(`Ошибка обработки объекта: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`);
-        }
+        if (id)
+            result = await updateObject(id, formEntity.data);
+        else
+            result = await createObject(formEntity.type, formEntity.data);
+
+        navigate(`/view-objects/${type}`);
     };
 
     if (!formEntity) return <div className={styles.loading}>Загрузка...</div>;
@@ -83,16 +78,16 @@ const DetailPage: FC = () => {
                 cells={materialCells}
                 onChange={({ data }) => setFormEntity(prev => ({ ...prev!, data }))}
             />
-            
+
             <div>
-                <FilledColorButton 
-                    mainColor="#FFFFFF" 
-                    additionalColor="#3498db" 
+                <FilledColorButton
+                    mainColor="#FFFFFF"
+                    additionalColor="#3498db"
                     onClick={handleClickBack}
                 >
                     Назад
                 </FilledColorButton>
-                
+
                 {(type && id) ? (
                     <FilledColorButton
                         mainColor="#FFFFFF"

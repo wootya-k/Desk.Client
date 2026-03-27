@@ -8,34 +8,16 @@
   overflow: hidden;
 }
 
-.createButtonContainer {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  top: 20px;
-  right: 20px;
-  z-index: 10;
-  gap: 10px;
-}
 
-.panelsArea {
-  position: relative;
-  width: 100%;
-  height: 100vh;
-  overflow: auto;
-  border: 2px dashed transparent;
-  transition: border-color 0.3s ease;
+
+.createButtonContainer button {
+  pointer-events: auto;
 }
 
 .panelsArea.dragOver {
   border-color: #3498db;
 }
 
-.dragDropBackground {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
 
 /* Стили для превью новой панели */
 .panelPreview {
@@ -155,4 +137,75 @@
   right: 0;
   bottom: 0;
   width: 5px;
+}
+/* ... существующие стили ... */
+
+/* Контейнер кнопок — самый верхний слой */
+.createButtonContainer {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+
+/* Фон для драг-н-дропа */
+.dragDropBackground {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+}
+
+.connectionsContainer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.panelsArea {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: auto;
+    z-index: 10;
+    pointer-events: auto;
+}
+/* Новая нижняя панель управления */
+.bottomControlPanel {
+  position: fixed; /* Фиксируем относительно окна браузера */
+  bottom: 30px;    /* Отступ снизу */
+  left: 50%;       /* Центрируем по горизонтали */
+  transform: translateX(-50%); /* Точная центровка */
+  z-index: 1000;   /* Поверх всего, включая Archer и панели */
+  
+  padding: 8px 16px;
+  border-radius: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.controlPanelContent {
+  display: flex;
+  gap: 12px; /* Расстояние между кнопками */
+  align-items: center;
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 600px) {
+  .bottomControlPanel {
+    bottom: 10px;
+    padding: 6px 12px;
+    width: 90%;
+    justify-content: space-around;
+  }
 }
