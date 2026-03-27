@@ -39,20 +39,6 @@ const NotificationHandler = () => {
       });
     });
 
-    // Удалена обработка обновлений схем
-    
-    // Обработка событий подключения
-    conn.onreconnecting((error) => {
-      console.warn('SignalR reconnecting due to error:', error);
-    });
-
-    conn.onreconnected((connectionId) => {
-      console.log('SignalR reconnected. New connection ID:', connectionId);
-    });
-
-    conn.onclose((error) => {
-      console.error('SignalR connection closed', error);
-    });
   };
 
   return <ToastContainer />;

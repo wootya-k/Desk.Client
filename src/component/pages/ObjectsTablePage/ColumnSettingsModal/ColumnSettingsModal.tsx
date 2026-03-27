@@ -63,7 +63,6 @@ const ColumnSettingsModal: React.FC<Props> = ({
 
   const handleReset = () => {
     const resetCols = onReset();
-    console.log('🔄 Сброс настроек в модальном окне:', resetCols);
     setColumns(resetCols.map(col => ({ ...col })));
   };
 
@@ -140,7 +139,6 @@ const ColumnSettingsModal: React.FC<Props> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
         e.preventDefault();
-        console.log('💾 Применение настроек из модального окна:', columns);
         onApply(columns);
       } else if (e.key === 'Escape') {
         e.preventDefault();
@@ -176,7 +174,17 @@ const ColumnSettingsModal: React.FC<Props> = ({
       data-testid="modal-backdrop"
     >
       <article className={styles.modalColumnSettings}>
+        <button
+            className={styles.resetButton}
+            onClick={onCancel}
+            title="Закрыть"
+            type="button"
+            aria-label="Закрыть"
+          >
+            <span className={styles.closeIcon}>✕</span>
+          </button>
         <h2 className={styles.modalTitle}>Настройка колонок</h2>
+        
 
         <ul 
           className={styles.columnList} 
@@ -223,7 +231,6 @@ const ColumnSettingsModal: React.FC<Props> = ({
           <FilledColorButton 
             width='94px'
             onClick={() => {
-              console.log('💾 Применение настроек из модального окна:', columns);
               onApply(columns);
             }}
           >

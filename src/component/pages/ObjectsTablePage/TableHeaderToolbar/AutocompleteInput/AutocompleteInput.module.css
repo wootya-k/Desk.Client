@@ -1,0 +1,192 @@
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.inputWrapper {
+  position: relative;
+  display: inline-block;
+  border-radius: 8px;
+  padding: 0px; 
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.inputWrapper::before,
+.inputWrapper::after {
+  content: "";
+  position: absolute;
+  inset: -2px; 
+  z-index: 9;
+  border-radius: 8px;
+  background: linear-gradient(var(--angle), 
+    #eef2ff, #c3dfff, rgb(255, 170, 234), #eef2ff);
+  animation: rotate 15s linear infinite;
+}
+
+.inputWrapper::after {
+  filter: blur(4px);
+  opacity: 0.5;
+}
+
+@keyframes rotate {
+  0%     { --angle: 0deg; }
+  100%   { --angle: 360deg; }
+}
+
+.input {
+  position: relative;
+  z-index: 10; /* Инпут поверх границы */
+  box-sizing: border-box;
+  height: 48px;
+  width: 100%;
+  padding: 0 14px;
+  font-size: 20px;
+  /* Убираем родную границу, так как она теперь у wrapper */
+  border: none;
+  border-radius: 6px; /* Чуть меньше wrapper (8px - 2px padding) */
+  outline: none;
+  background: #fff; /* Обязательно белый фон, чтобы перекрыть градиент внутри */
+  color: #6d6d6d; /* Оригинальный цвет текста */
+  transition: background-color 0.2s ease;
+}
+
+.input::placeholder {
+  color: #929292; /* Такой же цвет как у обычного текста в .input */
+  opacity: 1; /* Убираем прозрачность */
+}
+
+
+.suggestions {
+  position: absolute;
+  top: 98%;
+  width: 99%;
+  margin-top: 4px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  margin-left: 1px;
+  padding: 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid #e4e4e4;
+  border-radius: 0; 
+  box-sizing: border-box;
+  max-height: 500px;
+  overflow-y: auto;
+  z-index: 8;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestionItem,.suggestionItemActive {
+  font-size: 16px;
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #535353;
+  line-height: 1.4;
+}
+
+.suggestionItemActive {
+  background-color: rgba(104, 195, 255, 0.2);
+}
+
+.resultsBadge {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  background: #f8f8f8;
+  color: #666;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 12px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.resultsBadge[data-digits="1"],
+.resultsBadge[data-digits="2"] {
+  border-radius: 50%;
+  padding: 0;
+  min-width: 24px;
+}
+
+.resultsBadge[data-digits="3"] {
+  border-radius: 12px;
+  min-width: auto;
+  padding: 0 10px;
+}
+
+.resultsBadge[data-digits="4"],
+.resultsBadge[data-digits="5"] {
+  border-radius: 12px;
+  min-width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.inputWrapper:focus-within .resultsBadge {
+  background: #f3f3f3;
+  color: #555;
+}
+
+/* Красивый скроллбар для .suggestions */
+.suggestions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.suggestions::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 0;
+}
+
+.suggestions::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.suggestions::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Для Firefox */
+.suggestions {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+/* Индикатор цикла по сохранённым запросам */
+.cycleIndicator {
+  position: absolute;
+  bottom: -28px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 11px;
+  color: #555;
+  background: #f0f7ff;
+  border: 1px solid #b3d9ff;
+  padding: 3px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  animation: fadeIn 0.15s ease;
+  z-index: 20;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

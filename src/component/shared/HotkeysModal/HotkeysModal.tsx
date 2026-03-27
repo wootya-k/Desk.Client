@@ -35,7 +35,7 @@ const HotkeysModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </button>
         <h2 className={styles.title}>Горячие клавиши</h2>
         <ul className={styles.list}>
-          <li><kbd>Shift</kbd> + <kbd>?</kbd> — открыть/закрыть это окно</li>
+          <li><kbd>Ctrl</kbd> + <kbd>/</kbd> — открыть/закрыть это окно</li>
           <li><kbd>Esc</kbd> — закрыть модальное окно или вернуться назад</li>
           <li><kbd>Enter</kbd> — применить настройки (в модальных окнах)</li>
           <li><kbd>Shift</kbd> + <kbd>ЛКМ</kbd> — удалить без подтверждения</li>

@@ -32,7 +32,6 @@ const ReportTemplateEditorPage: React.FC = () => {
     const [isTemplateCollapsed, setIsTemplateCollapsed] = useState(true);
 
     useEffect(() => {
-        console.log('🔄 ReportTemplateEditorPage mounted, templateId:', templateId);
 
         if (templateId) {
             loadTemplate(templateId);
@@ -42,7 +41,6 @@ const ReportTemplateEditorPage: React.FC = () => {
     }, [templateId]);
 
     const initializeNewTemplate = () => {
-        console.log('🆕 Initializing new template');
         setFile(null);
         setFileName(null);
         setUsedFields([]);
@@ -53,17 +51,13 @@ const ReportTemplateEditorPage: React.FC = () => {
 
     const loadTemplate = async (id: string) => {
         if (!id) {
-            console.error('❌ Empty template ID');
             return;
         }
 
         setIsLoading(true);
         try {
-            console.log('📥 Loading template with ID:', id);
-
             // 1. Загружаем шаблон
             const reportDto = await fetchReportTemplateById(id);
-            console.log('✅ Template loaded:', reportDto);
 
             // Сохраняем JSON схему для отображения
             setJsonSchema(reportDto.schema);
@@ -85,7 +79,6 @@ const ReportTemplateEditorPage: React.FC = () => {
 
             // 2. Парсим схему для usedFields
             const schema: ReportSchema = parseSchema(reportDto.schema);
-            console.log('📋 Parsed schema:', schema);
 
             const initialRequired = new Set<string>();
             const initialUsedPaths = new Set<string>();
@@ -97,16 +90,14 @@ const ReportTemplateEditorPage: React.FC = () => {
                         if (f.required) initialRequired.add(f.path);
                     }
                 });
-                console.log('✅ Processed schema fields:', initialUsedPaths.size);
             } else {
-                console.warn('⚠️ Schema fields is undefined or not an array');
+                console.warn('⚠️ Поля схемы не определены');
             }
 
             setRequiredFields(initialRequired);
 
             // 3. Загружаем поля и сопоставляем с properties из JSON схемы
             const explorerData = await fetchFieldExplorer(id);
-            console.log('🎯 Field explorer data:', explorerData);
 
             const flattened = flattenFieldGroups(explorerData);
             setFieldGroups(flattened);
@@ -123,7 +114,6 @@ const ReportTemplateEditorPage: React.FC = () => {
                 schemaProperties.hasOwnProperty(f.path) || initialUsedPaths.has(f.path)
             );
             setUsedFields(restoredUsedFields);
-            console.log('✅ Restored used fields from schema properties:', restoredUsedFields.length);
 
             // Сворачиваем все группы по умолчанию
             const initialExpanded: Record<string, boolean> = {};
@@ -201,14 +191,11 @@ const ReportTemplateEditorPage: React.FC = () => {
                 schemaReportJson: JSON.stringify(schemaData, null, 2),
                 file: file
             };
-
-            console.log('💾 Saving template:', request);
             const result = await saveReportTemplate(request);
-            console.log('✅ Template saved:', result);
 
             // TODO: Показать уведомление об успехе
         } catch (error) {
-            console.error('❌ Error saving template:', error);
+            console.error('❌ Ошибка сохранения шаблона:', error);
             // TODO: Показать ошибку
         }
     };

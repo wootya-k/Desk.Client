@@ -43,7 +43,6 @@ const UserProfilePage: React.FC = () => {
   const handleSave = () => {
     if (!user) return;
     
-    console.log('Saving user:', user);
     // Реальный вызов API для сохранения:
     // AuthService.updateProfile(user).then(...)
     

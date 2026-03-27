@@ -1,4 +1,4 @@
-// utils/cookieUtils.ts
+// utils/LocalStorageUtils.ts
 
 export const setExpiringItem = (key: string, value: string, days: number = 1): void => {
   const now = new Date().getTime();

@@ -13,7 +13,7 @@ interface FilledColorButtonProps {
 }
 
 const FilledColorButton: FC<FilledColorButtonProps> = ({
-  height = '42px',
+  height = '44px',
   width = '130px',
   mainColor = '#ffffff',
   additionalColor = '#3498db',

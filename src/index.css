@@ -13,3 +13,7 @@ html, body, #root {
 .MuiGrid-direction-xs-column > .MuiGrid-item:last-child {
   margin-bottom: 0;
 }
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}

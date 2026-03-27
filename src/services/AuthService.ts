@@ -126,14 +126,13 @@ export const login = async (loginStr: string, password: string): Promise<UserDto
 
 export const logout = async (): Promise<void> => {
   try {
-    const url = await buildUrl(`/api/auth/logout`);
+    const url = await buildUrl(`/api/auth/logout/${refreshToken?.tokenId}`);
     await fetch(url, {
-      method: 'POST',
+      method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${authState.accessToken}`,
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ refreshTokenId: refreshToken?.tokenId }),
+      }
     });
   } finally {
     sessionStorage.clear();

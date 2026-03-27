@@ -26,8 +26,6 @@ const ObjectEditForm: FC<ObjectEditFormProps> = ({
   error,
   onChange
 }) => {
-  console.log(formEntity);
-console.log(formData);
   if (isLoading) {
     return (
       <div className={styles.loadingContainer}>

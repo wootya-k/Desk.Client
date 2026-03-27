@@ -12,21 +12,24 @@
 }
 
 .modalContent {
+  position: relative;
   background-color: white;
-  padding: 20px;
-  border-radius: 8px;
+  padding: 24px;
+  border-radius: 12px;
   width: 500px;
   max-width: 90vw;
-  max-height: 70vh;
-  overflow: hidden;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
 .modalTitle {
-  margin: 0 0 16px;
-  font-size: 20px;
-  font-weight: bold;
+  margin: 0 0 20px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #2c3e50;
+  padding-right: 40px;
 }
 
 .favoritesList {
@@ -34,44 +37,118 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  padding-right: 8px;
 }
 
-.favoriteItemContainer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.favoritesList::-webkit-scrollbar {
+  width: 6px;
 }
 
-.favoriteItemText {
-  flex: 1;
-  padding: 8px 12px;
-  background-color: #f9f9f9;
-  border: 1px solid #eee;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.favoritesList::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
 }
 
-.favoriteItemText:hover {
-  background-color: #e9e9e9;
+.favoritesList::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
 }
 
-.deleteButtonWrapper {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
+.favoritesList::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .noFavorites {
-  color: #666;
+  color: #888;
   font-style: italic;
   text-align: center;
-  padding: 16px;
+  padding: 40px 20px;
+  font-size: 15px;
 }
 
-.modalActions {
-  margin-top: 20px;
-  text-align: right;
+.closeButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 48px;
+  height: 48px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  border-top-right-radius: 12px;
+  z-index: 1;
+}
+
+.closeButton:hover:not(:disabled) {
+  background-color: #e74c3c;
+}
+
+.closeButton:hover:not(:disabled) .closeIcon {
+  color: white;
+}
+
+.closeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.closeIcon {
+  font-size: 20px;
+  font-weight: 300;
+  color: #666;
+  transition: color 0.2s;
+}
+
+
+
+/* ✅ Кнопка закрытия — как в "Настройка колонок" */
+/* ✅ Кнопка закрытия — вплотную к правому верхнему углу */
+.resetButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.1s;
+  z-index: 3;
+  border-top-right-radius: 8px;
+}
+
+/* ✅ По умолчанию: прозрачный фон, красный крестик */
+.resetButton .closeIcon {
+  font-size: 16px;
+  font-weight: 600; /* 🔥 Потолще */
+  line-height: 1;
+  color: #c41e3a; /* Красный крест */
+  transition: color 0.1s;
+}
+
+/* ✅ При наведении: красный фон, БЕЛЫЙ крестик */
+.resetButton:hover {
+  background-color:  #c41e3a;
+}
+
+.resetButton:hover .closeIcon {
+  color: #ffffff; /* Белый крест на красном фоне */
+}
+
+/* ✅ При нажатии: темнее красный */
+.resetButton:active {
+  background-color: #c50b1a;
+}
+
+.resetButton:active .closeIcon {
+  color: #ffffff;
 }

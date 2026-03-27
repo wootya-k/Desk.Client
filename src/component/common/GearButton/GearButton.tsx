@@ -8,41 +8,48 @@ interface GearButtonProps {
     height?: string;
     width?: string;
     strokeWidth?: number;
-  }
-  
-  const GearButton: React.FC<GearButtonProps> = ({
+    mainColor?: string;
+    additionalColor?: string;
+    disabled?: boolean;
+}
+
+const GearButton: React.FC<GearButtonProps> = ({
     size = 25,
     onClick,
-    height = "40px",
-    width = "40px",
+    height = "50px",
+    width = "50px",
+    mainColor = "#FFFFFF",
+    additionalColor = "#699",
     strokeWidth = 3,
-  }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-};
+    disabled = false
+}) => {
+    const [isHovered, setIsHovered] = useState(false);
+    const handleMouseEnter = () => {
+        setIsHovered(true);
+    };
 
-const handleMouseLeave = () => {
-    setIsHovered(false);
-};
+    const handleMouseLeave = () => {
+        setIsHovered(false);
+    };
 
-return (
-    <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-        <FilledColorButton
-            mainColor="#FFFFFF"
-            additionalColor="#699"
-            onClick={onClick}
-            height={height}
-            width={width}
-        >
-            {isHovered ? (
-                <GearIcon size={size} strokeWidth={strokeWidth} color="#FFFFFF" />
-            ) : (
-                <GearIcon size={size} strokeWidth={strokeWidth} color="#699" />
-            )}
-        </FilledColorButton>
-    </div>
-  );
+    return (
+        <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+            <FilledColorButton
+                mainColor={mainColor}
+                additionalColor={additionalColor}
+                onClick={onClick}
+                height={height}
+                width={width}
+                disabled={disabled}
+            >
+                {isHovered ? (
+                    <GearIcon size={size} strokeWidth={strokeWidth} color={mainColor} />
+                ) : (
+                    <GearIcon size={size} strokeWidth={strokeWidth} color={additionalColor} />
+                )}
+            </FilledColorButton>
+        </div>
+    );
 };
 
 export default GearButton;

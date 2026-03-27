@@ -32,7 +32,7 @@ export interface SchemaEditorDto {
 }
 
 export const createSchema = async (id: string, dto: SchemaEditorDto) => {
-    const url = await buildUrl(`/api/Schemas/${encodeURIComponent(id)}`);
+    const url = await buildUrl(`/api/schemas/${id}`);
     const requestDto = {
         ...dto,
         Id: id
@@ -53,7 +53,7 @@ export const createSchema = async (id: string, dto: SchemaEditorDto) => {
 };
 
 export const updateSchema = async (id: string, dto: SchemaEditorDto) => {
-    const url = await buildUrl(`/api/Schemas/${encodeURIComponent(id)}`);
+    const url = await buildUrl(`/api/schemas/${encodeURIComponent(id)}`);
     const requestDto = {
         ...dto,
         Id: id
@@ -74,7 +74,7 @@ export const updateSchema = async (id: string, dto: SchemaEditorDto) => {
 };
 
 export const deleteSchema = async (id: string) => {
-    const url = await buildUrl(`/api/Schemas/${encodeURIComponent(id)}`);
+    const url = await buildUrl(`/api/schemas/${encodeURIComponent(id)}`);
 
     const response = await fetch(url, {
         method: 'DELETE',
@@ -90,7 +90,7 @@ export const deleteSchema = async (id: string) => {
 };
 
 export const fetchSchemaById = async (id: string) => {
-    const url = await buildUrl(`/api/Schemas/${encodeURIComponent(id)}`);
+    const url = await buildUrl(`/api/schemas/${encodeURIComponent(id)}`);
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -99,6 +99,5 @@ export const fetchSchemaById = async (id: string) => {
     
     // Дожидаемся преобразования ответа в JSON
     const data: SchemaEditorDto = await response.json();
-    console.log(data); // Теперь в консоль выводится значение
     return data;
 };

@@ -2,33 +2,28 @@ import { buildUrl } from 'config'; // Укажите правильный пут
 import $RefParser from '@apidevtools/json-schema-ref-parser';
 import { DetailEntity } from '@models';
 
-export const fetchDetailEntityById = async (id: string): Promise<DetailEntity> => {
+export const fetchDetailEntityById = async (
+  id: string, 
+  newType?: string
+): Promise<DetailEntity> => {
   try {
-    const url = await buildUrl(`/api/Schemas/form/${id}`);
-    const response = await fetch(url
-      // , {
-      // method: 'GET', 
-      // headers: {
-      //   'X-Custom-Path': '/ws'
-      // }}
-    );
+    // ✅ Добавляем query-параметр, если newType передан
+    const queryParams = newType ? `?newType=${encodeURIComponent(newType)}` : '';
+    const url = await buildUrl(`/api/schemas/form/${id}${queryParams}`);
+    
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Ошибка при получении FormEntity по ID: ' + response.statusText);
     }
 
     const rawData = await response.json();
-    console.log('1--------------------------------------------------------------');
-    console.log(JSON.parse(rawData.schema));
-    console.log('1--------------------------------------------------------------');
-    console.log('0--------------------------------------------------------------');
-    console.log(await $RefParser.dereference(JSON.parse(rawData.schema)));
-    console.log('0--------------------------------------------------------------');
+    
     return {
       id: rawData.id,
-      type: rawData.type,
+      type: newType || rawData.type,
       schema: await $RefParser.dereference(JSON.parse(rawData.schema)),
       uiSchema: JSON.parse(rawData.uiSchema),
-      data: JSON.parse(rawData.data)
+      data: JSON.parse(rawData.data)  // ✅ Вот тут было: пропущено "data:"
     };
   } catch (error) {
     console.error('Ошибка при получении FormEntity по ID:', error);
@@ -36,27 +31,44 @@ export const fetchDetailEntityById = async (id: string): Promise<DetailEntity> =
   }
 };
 
+// ✅ Добавь эту функцию в файл или в сервис
+const fetchDetailEntityByIdWithNewType = async (
+  id: string, 
+  newType: string,
+  signal?: AbortSignal
+): Promise<any> => {
+  try {
+    const url = await buildUrl(`/api/schemas/form/${id}?newType=${encodeURIComponent(newType)}`);
+    const response = await fetch(url, { signal });
+    
+    if (!response.ok) {
+      throw new Error('Ошибка при получении формы с newType: ' + response.statusText);
+    }
+
+    const rawData = await response.json();
+    return {
+      id: rawData.id,
+      type: newType, // 🔥 Переопределяем тип на новый
+      schema: await $RefParser.dereference(JSON.parse(rawData.schema)),
+      uiSchema: JSON.parse(rawData.uiSchema),
+      data: JSON.parse(rawData.data)
+    };
+  } catch (error) {
+    console.error('Ошибка при получении формы с newType:', error);
+    throw error;
+  }
+};
+
+
 export const fetchDetailEntityByType = async (type: string): Promise<DetailEntity> => {
   try {
-    const url = await buildUrl(`/api/Schemas/newform/${type}`);
-    const response = await fetch(url
-      // , {
-      // method: 'GET', 
-      // headers: {
-      //   'X-Custom-Path': '/ws'
-      // }}
-    );
+    const url = await buildUrl(`/api/schemas/new-form/${type}`);
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error('Ошибка при получении FormEntity по типу: ' + response.statusText);
     }
 
     const rawData = await response.json();
-
-    console.log('--------------------------------------------------------------');
-    console.log(JSON.parse(rawData.schema));
-    console.log('--------------------------------------------------------------');
-    console.log(await $RefParser.dereference(JSON.parse(rawData.schema)));
-    console.log('--------------------------------------------------------------');
 
     return {
       id: rawData.id,

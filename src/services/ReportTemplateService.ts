@@ -1,4 +1,3 @@
-// @services/ReportTemplateService.ts
 import { buildUrl } from 'config';
 
 export interface FieldOption {
@@ -12,11 +11,6 @@ export interface FieldGroup {
   fields: FieldOption[]; // обязательно массив
 }
 
-// СТРУКТУРА ТОЧНО КАК В ТВОЁМ API:
-// userGroup — объект
-// targetGroup — опциональный объект
-// firstLevelGroups — объект (НЕ массив!)
-// secondLevelGroups — объект (НЕ массив!)
 export interface FieldExplorerData {
   userGroup: FieldGroup;
   targetGroup?: FieldGroup;
@@ -45,14 +39,12 @@ export interface GenerateReportRequest {
   data: Record<string, unknown>;
 }
 
-// Схема для парсинга
 export interface ReportSchema {
   fields: { path: string; required: boolean }[];
 }
 
-// Получение шаблона по ID → /api/Reports/{id}
 export const fetchReportTemplateById = async (id: string): Promise<ReportTemplateDto> => {
-  const url = await buildUrl(`/api/Reports/${encodeURIComponent(id)}`);
+  const url = await buildUrl(`/api/reports/${encodeURIComponent(id)}`);
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -76,7 +68,7 @@ export const fetchReportTemplateById = async (id: string): Promise<ReportTemplat
 
 // Получение структуры полей → /api/ReportTemplates/{id}
 export const fetchFieldExplorer = async (id: string): Promise<FieldExplorerData> => {
-  const url = await buildUrl(`/api/ReportTemplates/${encodeURIComponent(id)}`);
+  const url = await buildUrl(`/api/templates/${encodeURIComponent(id)}`);
   const response = await fetch(url);
 
   if (!response.ok) {
@@ -136,7 +128,7 @@ export const saveReportTemplate = async (request: CreateReportTemplateRequest): 
 
 // Генерация отчёта
 export const generateReport = async (request: GenerateReportRequest): Promise<Blob> => {
-  const url = await buildUrl(`/api/Reports/${encodeURIComponent(request.templateId)}/Generate`);
+  const url = await buildUrl(`/api/reports/${encodeURIComponent(request.templateId)}/generate`);
 
   const response = await fetch(url, {
     method: 'POST',
