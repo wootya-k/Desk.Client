@@ -22,9 +22,9 @@ const CorporationStatsPage: React.FC = () => {
 
             try {
                 setIsLoading(true);
+                setError(null);
                 const matrix = await getStatsForType(type);
                 setStats(matrix);
-                setError(null);
             } catch (err) {
                 console.error('Ошибка загрузки статистики:', err);
                 setError('Не удалось загрузить данные для статистики');
@@ -40,6 +40,7 @@ const CorporationStatsPage: React.FC = () => {
         navigate('/');
     };
 
+
     return (
         <div className={styles.pageContainer}>
             <div className={styles.header}>
@@ -52,8 +53,17 @@ const CorporationStatsPage: React.FC = () => {
             </div>
 
             <div className={styles.content}>
-                {error && <div className={styles.error}>{error}</div>}
-                {stats && <CorporationStatsTable stats={stats} isLoading={isLoading} />}
+                {error && (
+                    <div className={styles.error}>
+                        <span className={styles.errorIcon}>⚠️</span>
+                        {error}
+                    </div>
+                )}
+                {isLoading && !stats ? (
+                    <div className={styles.loading}>Загрузка данных...</div>
+                ) : stats ? (
+                    <CorporationStatsTable stats={stats} isLoading={isLoading} />
+                ) : null}
             </div>
         </div>
     );

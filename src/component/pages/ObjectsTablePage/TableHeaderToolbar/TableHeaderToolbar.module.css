@@ -4,10 +4,11 @@
   justify-content: center;
   align-items: center;
   width: 100%;
-  padding: 22px 0 0 0;
+  padding: 20px 0px 10px 0;
   position: relative;
+  background: linear-gradient(180deg, #fafafa 0%);
 }
-  
+
 .toolbarButtons {
   display: flex;
   flex-wrap: nowrap;
@@ -37,20 +38,19 @@
   top: -24px;
   transform: translateX(-50%);
   z-index: 500;
-  
+
   display: flex;
   align-items: center;
   justify-content: center;
   width: 22px;
   height: 22px;
   padding: 0 8px;
-  
-  background: rgb(231, 231, 231);
+
   color: #666;
   font-size: 10px;
   font-weight: 600;
   border-radius: 15px;
-  
+
   pointer-events: none;
   user-select: none;
 }
@@ -64,30 +64,29 @@
   align-items: flex-start;
   justify-content: center;
   gap: 8px;
-  
+
   position: fixed;
   bottom: 50px;
   left: 50%;
   transform: translateX(-50%);
-  
-  background: rgba(31, 41, 55, 0.95);
+
   color: white;
   padding: 12px 16px;
   border-radius: 6px;
   font-size: 14px;
-  
+
   z-index: 1000;
   pointer-events: none;
   max-width: 420px;
-  
+
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   border: 1px solid #374151;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+
   word-wrap: break-word;
   white-space: normal;
   line-height: 1.4;
-  
+
   animation: fadeIn 0.15s ease-out;
 }
 
@@ -96,6 +95,7 @@
     opacity: 0;
     transform: translateX(-50%) translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
@@ -111,6 +111,7 @@
   width: 100%;
   position: relative;
   padding-left: 16px;
+  z-index: 1200;
 }
 
 .hintRow::before {
@@ -137,18 +138,323 @@
 }
 
 /* ========================================
+   INFO-КНОПКА СПРАВКИ (рядом с поиском)
+   ======================================== */
+.infoButton {
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 15;
+  margin: 20px 0px 0px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+
+  background: #f8f8f8;
+  color: #999;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 50%;
+  border: 1px solid #e0e0e0;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+
+  padding: 0;
+  outline: none;
+}
+
+.infoButton:hover {
+  background: #f0f0f0;
+  color: #666;
+  border-color: #ccc;
+}
+
+.infoButton:active {
+  transform: translateY(-50%) scale(0.98);
+}
+
+/* ========================================
+   ВСПЛЫВАЮЩАЯ СПРАВКА (попап)
+   ======================================== */
+.helpTooltip {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 1000;
+
+  width: min(90vw, 720px);
+  max-height: min(70vh, 600px);
+  overflow-y: auto;
+
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+
+  padding: 20px 24px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #2d3748;
+
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+.helpTooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 28px;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-left: 1px solid #e2e8f0;
+  border-top: 1px solid #e2e8f0;
+  transform: rotate(45deg);
+  z-index: -1;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Заголовок справки */
+.helpTooltip h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0 0 12px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #edf2f7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.helpTooltip h3::before {
+  content: '📚';
+  font-size: 18px;
+}
+
+/* Секции */
+.helpSection {
+  margin-bottom: 16px;
+}
+
+.helpSection:last-child {
+  margin-bottom: 0;
+}
+
+.helpSection h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4a5568;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Таблицы в справке */
+.helpTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.helpTable th,
+.helpTable td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid #edf2f7;
+}
+
+.helpTable th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.helpTable code {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: #c53030;
+}
+
+/* Подсказки */
+.helpNote {
+  background: #f0f9ff;
+  border-left: 3px solid #63b3ed;
+  padding: 8px 12px;
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  color: #2c5282;
+  margin: 8px 0;
+}
+
+.helpNote.warning {
+  background: #fffaf0;
+  border-left-color: #f6ad55;
+  color: #9c4221;
+}
+
+/* Горячие клавиши — сетка */
+.hotkeysGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px 16px;
+  margin-top: 8px;
+}
+
+.hotkeyItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.hotkeyItem kbd {
+  padding: 2px 8px;
+  background: #edf2f7;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 11px;
+  color: #2d3748;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* Кнопка закрытия */
+.helpTooltipClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: #f7fafc;
+  color: #718096;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.helpTooltipClose:hover {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+/* Скроллбар для справки */
+.helpTooltip::-webkit-scrollbar {
+  width: 6px;
+}
+
+.helpTooltip::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.helpTooltip::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+.helpTooltip::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* ========================================
    АДАПТИВНОСТЬ
    ======================================== */
 @media (max-width: 1415px) {
-  .toolbarButtons { gap: 12px; flex-wrap: wrap; }
-  .shortcutBadge { top: -20px; width: 20px; height: 20px; font-size: 9px; }
+  .toolbarButtons {
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .shortcutBadge {
+    top: -20px;
+    width: 20px;
+    height: 20px;
+    font-size: 9px;
+  }
 }
 
 @media (max-width: 768px) {
-  .toolbarButtons { gap: 10px; }
-  .shortcutBadge { top: -18px; width: 18px; height: 18px; font-size: 9px; }
-  .shortcutHint { bottom: 40px; padding: 10px 14px; font-size: 13px; }
-  .hintKey { padding: 1px 6px; font-size: 11px; }
+  .toolbarButtons {
+    gap: 10px;
+  }
+
+  .shortcutBadge {
+    top: -18px;
+    width: 18px;
+    height: 18px;
+    font-size: 9px;
+  }
+
+  .shortcutHint {
+    bottom: 40px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .hintKey {
+    padding: 1px 6px;
+    font-size: 11px;
+  }
+
+  .infoButton {
+    right: 36px;
+    width: 10px;
+    height: 10px;
+    font-size: 12px;
+  }
+
+  .helpTooltip {
+    right: -20px;
+    width: calc(100vw - 32px);
+    font-size: 12px;
+  }
+
+  .hotkeysGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 450px) {
+  .toolbarContainer {
+    min-width: 450px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .shortcutBadge {
+    display: none;
+  }
+
+  .shortcutHint {
+    display: none;
+  }
 }
 
 /* ========================================
@@ -172,30 +478,107 @@
   border-radius: 4px;
 }
 
-
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shortcutHint { animation: none !important; }
+  .shortcutHint {
+    animation: none !important;
+  }
+
+  .helpTooltip {
+    animation: none !important;
+  }
+}
+
+/* === ПАГИНАЦИЯ === */
+.paginationWrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 8px;
+  margin-top: 4px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.paginationContainer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.paginationButton {
+  width: 30px;
+  height: 30px;
+  padding: 14px 0px 15px 0px;
+  border: 1px solid #ddd;
+  background: #ffffff;
+  border-radius: 30px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: #333;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.paginationButton:hover:not(:disabled) {
+  background: #3498db;
+  color: #ffffff;
+  border-color: #3498db;
+}
+
+.paginationButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #f9f9f9;
+}
+
+.paginationInfo {
+  color: #555;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.paginationCount {
+  color: #888;
+  font-weight: 400;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .paginationWrapper {
+    padding: 8px 0 4px;
+  }
+
+  .paginationContainer {
+    gap: 8px;
+  }
+
+  .paginationButton {
+    min-width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  .paginationInfo {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 450px) {
-  .toolbarContainer {
-    min-width: 450px; /* Фиксируем минимальную ширину */
-    overflow-x: auto; /* Разрешаем горизонтальный скролл */
-    -webkit-overflow-scrolling: touch; /* Плавный скролл на iOS */
-  }
-  
-  /* Опционально: скрываем бейджи на очень маленьких экранах */
-  .shortcutBadge {
-    display: none;
-  }
-  
-  /* Опционально: скрываем подсказку */
-  .shortcutHint {
+  .paginationCount {
     display: none;
   }
 }

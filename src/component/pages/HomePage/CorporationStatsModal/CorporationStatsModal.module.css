@@ -1,0 +1,248 @@
+/* ===== Модальное окно ===== */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+
+.modalContent {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+
+/* Хедер */
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.closeButton:hover {
+  background: #f1f5f9;
+  color: #ef4444;
+}
+
+.modalBody {
+  overflow-y: auto;
+  flex: 0 0 auto;        /* 🔹 Было: flex: 1 → отключаем растягивание */
+  width: fit-content;    /* 🔹 Сжимается до ширины таблицы */
+  max-width: 95vw;       /* 🔹 Не вылезает за экран на мобилках */
+  min-height: 0;
+}
+
+.tableContainer {
+  overflow-x: auto;
+  overflow-y: visible;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  
+  /* 🔹 Фиксированная ширина таблицы */
+  width: 600px;
+  max-width: 100%; /* ✅ На мобильных не вылезет за экран */
+  margin: 0 auto;  /* ✅ Центрирование */
+}
+
+.statsTable {
+    
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.colData {
+  width: 50px;
+  min-width: 40px;
+  max-width: 60px;
+}
+
+.colTotal {
+  width: 70px;
+  min-width: 70px;
+  max-width: 80px;
+}
+
+.headerCell {
+  padding: 14px 16px;
+  color: #64748b;
+  font-size: 11px;
+  background: #fafbfc;
+  border-right: 1px solid #f1f5f9;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-align: center;
+  min-width: 40px;
+  max-width: 60px;
+  height: 44px;
+  box-sizing: border-box;
+}
+
+
+.headerCell:last-child {
+  border-right: none;
+}
+
+/* Жирный заголовок ВСЕГО */
+.totalHeader {
+  color: #6c6d72;
+  width: 70px;
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 600;
+  background: #f2f5f8;
+}
+
+.totalHeader .headerContent {
+  text-align: center;
+  font-size: 14px;
+   font-weight: 700; 
+}
+
+.headerContent {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+}
+
+.firstColumn {
+  text-align: left;
+  color: #6c6d72;
+  border-bottom: 1px solid #e6f1fc;
+  width: 140px;
+}
+
+.lastColumn {
+  width: 60px;
+  border-bottom: 2px solid #e2e8f0;
+  color: #6c6d72;
+}
+
+.row:hover {
+  background-color: #f7f8fa;
+}
+
+.cell {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #6c6d72;
+  background-color: inherit;
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #f1f5f9;
+  text-align: center;
+  height: 48px;
+  width: 60px;
+  box-sizing: border-box;
+}
+
+
+  /* text-align: center;
+  font-size: 14px;
+  font-weight: 600; */
+
+
+
+.cell:last-child {
+  border-right: none;
+}
+
+.rowLabel {
+  text-align: left;
+  background-color: #fafbfc;
+  border-right: 2px solid #e2e8f0;
+  color: #6c6d72;
+  width: 80px;
+}
+
+.totalLabel {
+  font-weight: 600;
+  background: #f2f5f8;
+}
+
+.grandTotal {
+   color: #6c6d72;
+  border-radius: 0 0 12px 0;
+  font-weight: 600;
+}
+
+.grandTotal .cellContent {
+  color: #6c6d72;
+  font-size: 14px;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ===== Состояния ===== */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+   color: #6c6d72;
+  gap: 12px;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  color: #dc2626;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.errorIcon {
+  font-size: 16px;
+}
+
+/* Футер */
+.modalFooter {
+  padding: 16px 24px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

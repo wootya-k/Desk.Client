@@ -17,14 +17,64 @@ import {
     createObject,
     fetchHistoryById,
     ChangeHistory,
-    deleteObjectById
+    deleteObjectById,
+    ValidationException
 } from '@services/ObjectService';
 import { checkPrintable, generateReport } from '@services/ReportServices';
 import { getExpiringItem, setExpiringItem, removeItem } from 'utils/LocalStorageUtils';
 import { useNavigate } from 'react-router-dom';
 import { getTransforms, TransformEntity, TransformType } from '@services/TransformService';
 import { getObjectTypesMap, getObjectTypeNameById } from '@services/ObjectTypeService';
+import { ErrorObject } from 'ajv';
 
+// ============================================================================
+// Утилита: конвертация серверных ошибок в формат AJV для JsonForms
+// ============================================================================
+const convertServerErrorsToAjv = (
+    serverErrors: Record<string, string[]>
+): ErrorObject[] => {
+    return Object.entries(serverErrors).flatMap(([instancePath, messages]) => {
+        return messages.map((message): ErrorObject => {
+            let keyword: string = 'custom';
+            let params: Record<string, unknown> = {};
+
+            if (message.includes('перечислении') || message.includes('enum')) {
+                keyword = 'enum';
+                params = { allowedValues: [] };
+            } else if (message.includes('null') && message.includes('string')) {
+                keyword = 'type';
+                params = { type: 'string' };
+            } else if (message.includes('null') && message.includes('number')) {
+                keyword = 'type';
+                params = { type: 'number' };
+            } else if (message.includes('обязательно') || message.includes('required')) {
+                keyword = 'required';
+                params = { missingProperty: instancePath.replace(/^\//, '') };
+            } else if (message.includes('минимум') || message.includes('minimum')) {
+                keyword = 'minimum';
+                params = { limit: 0 };
+            } else if (message.includes('максимум') || message.includes('maximum')) {
+                keyword = 'maximum';
+                params = { limit: 100 };
+            } else if (message.includes('формат') || message.includes('pattern')) {
+                keyword = 'pattern';
+                params = { pattern: '' };
+            }
+
+            return {
+                instancePath,
+                schemaPath: `#/${keyword}`,
+                keyword,
+                message,
+                params,
+            };
+        });
+    });
+};
+
+// ============================================================================
+// Интерфейсы
+// ============================================================================
 interface ObjectEditModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -32,11 +82,14 @@ interface ObjectEditModalProps {
     id?: string;
     title?: string;
     onSaveSuccess?: () => void;
-    isDeadObject?: boolean; // ✅ Для мёртвых объектов (status === false)
+    isDeadObject?: boolean;
 }
 
 type FormData = Record<string, unknown>;
 
+// ============================================================================
+// Компонент
+// ============================================================================
 const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
     isOpen,
     onClose,
@@ -71,8 +124,31 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
     const [isDeadObject, setIsDeadObject] = useState(externalIsDeadObject);
     const [isHardDeleteModalOpen, setIsHardDeleteModalOpen] = useState(false);
 
+    // ✅ Состояние для серверных ошибок валидации (AJV format)
+    const [serverValidationErrors, setServerValidationErrors] = useState<ErrorObject[]>([]);
+
     const cookieKey = id ? `currentVersion_${type}_${id}` : `currentVersion_${type}_new`;
     const navigate = useNavigate();
+
+    const [showJsonPreview, setShowJsonPreview] = useState(false);
+    const [jsonCopied, setJsonCopied] = useState(false);
+
+
+    const toggleJsonPreview = useCallback((): void => {
+        setShowJsonPreview(prev => !prev);
+    }, []);
+
+    // ✅ Копирование JSON в буфер обмена
+    const handleCopyJson = useCallback(async (): Promise<void> => {
+        if (!formData) return;
+        try {
+            await navigator.clipboard.writeText(JSON.stringify(formData, null, 2));
+            setJsonCopied(true);
+            setTimeout(() => setJsonCopied(false), 2000);
+        } catch (err) {
+            console.error('Не удалось скопировать JSON:', err);
+        }
+    }, [formData]);
 
     const transformsCache = new Map<string, TransformEntity[]>();
 
@@ -176,6 +252,7 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             setError(false);
             setIsPrintable(false);
             setHasTransformsForType(null);
+            setServerValidationErrors([]); // ✅ Сброс ошибок при открытии
 
             try {
                 let entity: any;
@@ -191,8 +268,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                 if (entityType) {
                     loadTransformsForType(entityType).then(setHasTransformsForType);
                 }
-
-
 
                 const sessionData = restoreFromSession();
                 const initialData = sessionData || entity.data;
@@ -238,6 +313,7 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             setTransforms([]);
             setEdictsError(null);
             setIsHardDeleteModalOpen(false);
+            setServerValidationErrors([]); // ✅ Сброс при закрытии
         }
     }, [isOpen]);
 
@@ -247,7 +323,15 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
         }
     }, [formData, isLoading, isOpen, saveCurrentSession]);
 
+    // ✅ Очищаем серверные ошибки, когда пользователь начал редактировать
+    useEffect(() => {
+        if (serverValidationErrors.length > 0) {
+            setServerValidationErrors([]);
+        }
+    }, [formData]);
+
     const handleClose = useCallback((): void => {
+        setServerValidationErrors([]); // ✅ Сброс ошибок при закрытии
         if (hasUnsavedChanges()) {
             setShowUnsavedModal(true);
         } else {
@@ -271,9 +355,29 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             }
 
             clearCurrentSession();
+            setServerValidationErrors([]); // ✅ Успех — очищаем ошибки
             if (onSaveSuccess) onSaveSuccess();
             onClose();
         } catch (err) {
+            // ✅ Обрабатываем валидационные ошибки с бэкенда (422)
+            if (err instanceof ValidationException) {
+                const ajvErrors = convertServerErrorsToAjv(err.errors);
+                setServerValidationErrors(ajvErrors);
+
+                // 🔔 Скролл к первому полю с ошибкой (опционально)
+                setTimeout(() => {
+                    const firstErrorPath = Object.keys(err.errors)[0];
+                    if (firstErrorPath) {
+                        const fieldName = firstErrorPath.replace(/^\//, '').split('/')[0];
+                        const element = document.querySelector(`[data-jsonforms-field="${fieldName}"]`);
+                        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+
+                return; // ❗ Не закрываем модалку — даём пользователю исправить
+            }
+
+            // ❌ Другие ошибки
             console.error('Ошибка сохранения:', err);
             setError(true);
         }
@@ -288,9 +392,7 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
         if (!id) return;
 
         try {
-            // ✅ Вызов с режимом 'hard' для безвозвратного удаления
             await deleteObjectById(id, 'hard');
-
             clearCurrentSession();
             if (onSaveSuccess) onSaveSuccess();
             onClose();
@@ -388,6 +490,7 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             setFormData(originalData);
         }
         clearCurrentSession();
+        setServerValidationErrors([]); // ✅ Сброс ошибок при сбросе формы
     };
 
     const handleResetAndClose = (): void => {
@@ -495,6 +598,15 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             >
                 <div className={styles.modalContainer}>
                     <button
+                        className={`${styles.togglePreviewBtn} ${showJsonPreview ? styles.active : ''}`}
+                        onClick={toggleJsonPreview}
+                        title={showJsonPreview ? 'Показать форму' : 'Показать JSON'}
+                        type="button"
+                        aria-label="Переключить просмотр"
+                    >
+                        <span className={styles.toggleIcon}>—</span>
+                    </button>
+                    <button
                         className={styles.resetButton}
                         onClick={handleClose}
                         title="Закрыть"
@@ -508,13 +620,35 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                     </div>
 
                     <div className={styles.modalContent}>
-                        <ObjectEditForm
-                            formEntity={formEntity}
-                            formData={formData}
-                            isLoading={isLoading}
-                            error={error}
-                            onChange={setFormData}
-                        />
+                        {showJsonPreview ? (
+                            // 📄 JSON Preview Panel
+                            <div className={styles.jsonPreviewPanel}>
+                                <button
+                                    className={styles.copyJsonBtn}
+                                    onClick={handleCopyJson}
+                                    disabled={!formData}
+                                    title="Скопировать JSON"
+                                    type="button"
+                                >
+                                    {jsonCopied ? '✓ Успешно' : 'Копировать'}
+                                </button>
+                                <pre className={styles.jsonPre}>
+                                    {formData
+                                        ? JSON.stringify(formData, null, 2)
+                                        : '// Загрузка данных...'}
+                                </pre>
+                            </div>
+                        ) : (
+                            // 📝 Обычная форма
+                            <ObjectEditForm
+                                formEntity={formEntity}
+                                formData={formData}
+                                isLoading={isLoading}
+                                error={error}
+                                onChange={setFormData}
+                                serverValidationErrors={serverValidationErrors}
+                            />
+                        )}
                     </div>
 
                     {currentType !== type && (
@@ -523,9 +657,8 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                         </span>
                     )}
 
-                    {/* ✅ Обновлённый футер с условными кнопками */}
+                    {/* ✅ Футер с кнопками */}
                     <div className={styles.modalFooter}>
-                        {/* ✅ Кнопка "Удалить навсегда" — ТОЛЬКО для мёртвых объектов */}
                         {isDeadObject && id && (
                             <FilledColorButton
                                 width="120px"
@@ -537,7 +670,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                             </FilledColorButton>
                         )}
 
-                        {/* Кнопка "Сохранить" — только для активных объектов */}
                         {!isDeadObject && (
                             <FilledColorButton
                                 width="120px"
@@ -549,7 +681,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                             </FilledColorButton>
                         )}
 
-                        {/* Кнопка "Печать" — только для активных объектов с id */}
                         {!isDeadObject && isPrintable && id && !hasChanges && (
                             <FilledColorButton
                                 width="120px"
@@ -561,7 +692,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                             </FilledColorButton>
                         )}
 
-                        {/* Кнопка "Действия" — доступна всегда при наличии трансформов */}
                         {id && hasTransformsForType === true && (
                             <FilledColorButton
                                 width="120px"
@@ -571,7 +701,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                             </FilledColorButton>
                         )}
 
-                        {/* Кнопка "Сбросить" — только если есть изменения и объект активен */}
                         {!isDeadObject && hasChanges && (
                             <FilledColorButton
                                 width="120px"
@@ -583,7 +712,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                             </FilledColorButton>
                         )}
 
-                        {/* Кнопка "История" — доступна всегда */}
                         <FilledColorButton
                             width="120px"
                             onClick={handleHistoryClick}
@@ -591,8 +719,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                         >
                             История
                         </FilledColorButton>
-
-
                     </div>
 
                     {showPrintModal && (

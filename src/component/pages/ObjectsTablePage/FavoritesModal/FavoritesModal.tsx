@@ -44,6 +44,20 @@ const FavoritesModal: React.FC<FavoritesModalProps> = ({
     }
   }, [isOpen, type]);
 
+   useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          onClose();
+        }
+      };
+         document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  });
+  
+  
   // Сохранение порядка
   const saveOrder = (updatedFavorites: FavoriteQuery[]) => {
     if (!type) return;
@@ -98,6 +112,7 @@ const handleSave = async (id: number, name: string, body: string) => {
       }
     }
   };
+
 
   const handleCancelDelete = () => setDeleteConfirmationId(null);
 

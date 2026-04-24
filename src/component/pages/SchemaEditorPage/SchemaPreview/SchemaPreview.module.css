@@ -1,12 +1,38 @@
-
+/* --- Ваши исходные стили (объединены, без изменений логики) --- */
 .previewPanel {
   background-color: white;
+  padding: 10px;
+  position: relative; /* Добавлено только для корректного наложения z-index */
 }
+
 .previewPre.invalid {
   color: #b12718;
 }
 
-.previewPanel {
-  padding: 10px;
+/* --- Стили кнопки копирования --- */
+.copyBtn {
+  position: sticky;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  float: right; /* Гарантирует начальное позиционирование в правом верхнем углу */
+  margin-left: 12px;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
+.copyBtn:hover {
+  background: #f8f9fa;
+  border-color: #ced4da;
+}
+
+.copyBtn:active {
+  transform: scale(0.98);
+}

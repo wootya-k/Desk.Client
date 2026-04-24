@@ -3,11 +3,13 @@ import { JsonForms } from '@jsonforms/react';
 import { materialCells, materialRenderers } from '@jsonforms/material-renderers';
 import { UISchemaElement } from '@jsonforms/core';
 import styles from './ObjectEditForm.module.css';
+import { i18nRu } from 'utils/i18n'; // ← путь под твой проект
+import { ErrorObject } from 'ajv';
 
 type DetailEntity = {
   type: string;
   schema: any;
-  uiSchema: UISchemaElement | any;
+  uiSchema: UISchemaElement | any; // ← обрати внимание: uiSchema, а не uischema
   data: any;
 };
 
@@ -17,6 +19,7 @@ interface ObjectEditFormProps {
   isLoading: boolean;
   error: boolean;
   onChange: (data: any) => void;
+  serverValidationErrors?: ErrorObject[];
 }
 
 const ObjectEditForm: FC<ObjectEditFormProps> = ({
@@ -45,14 +48,18 @@ const ObjectEditForm: FC<ObjectEditFormProps> = ({
 
   return (
     <div className={styles.formContent}>
-      <JsonForms
-        schema={formEntity.schema}
-        uischema={formEntity.uiSchema as UISchemaElement}
-        data={formData}
-        renderers={materialRenderers}
-        cells={materialCells}
-        onChange={({ data }) => onChange(data)}
-      />
+    <JsonForms
+    validationMode="NoValidation" 
+      data={formData}
+      schema={formEntity.schema}           // ← без опционального ?, т.к. выше проверка
+      uischema={formEntity.uiSchema}       // ← исправлено: uiSchema → uischema (prop JsonForms)
+      renderers={materialRenderers}
+      cells={materialCells}
+      i18n={i18nRu}                        // ← только это добавляем
+      onChange={({ data }) => {
+        onChange(data);
+      }}
+    />
     </div>
   );
 };

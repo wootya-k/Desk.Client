@@ -26,7 +26,7 @@ import {
   PanelDimensions,
 } from 'utils/panelLayoutUtils';
 import TransformEditorModal from './TransformEditorModal/TransformEditorModal';
-
+import CorporationStatsModal from './CorporationStatsModal/CorporationStatsModal';
 interface ArcherRelation {
   sourceId: string;
   targetId: string;
@@ -39,6 +39,7 @@ interface ArcherRelation {
     strokeDasharray?: string;
   };
 }
+
 
 interface PanelPosition {
   x: number;
@@ -78,6 +79,9 @@ const PANEL_DIMENSIONS: PanelDimensions = {
 };
 
 const HomePage: React.FC = () => {
+  const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
+const [statsType, setStatsType] = useState<string>('employee');
+
   const [objectTypes, setObjectTypes] = useState<ObjectType[]>([]);
   const [isEdictModalOpen, setIsEdictModalOpen] = useState(false);
   const [groupedTypes, setGroupedTypes] = useState<Record<string, ObjectType[]>>({});
@@ -959,8 +963,12 @@ const HomePage: React.FC = () => {
         >
           Печать
         </FilledColorButton>
+
         <FilledColorButton
-          onClick={() => navigate('/corporation-stats/employee')}
+          onClick={() => {
+            setStatsType('employee');
+            setIsStatsModalOpen(true);
+          }}
           disabled={!isAdminOrMaster}
           width="100px"
         >
@@ -973,6 +981,14 @@ const HomePage: React.FC = () => {
           width="100px"
         >
           Действия
+        </FilledColorButton>
+
+        <FilledColorButton
+          onClick={() => { }}
+          disabled={!isAdminOrMaster}
+          width="100px"
+        >
+          События
         </FilledColorButton>
 
         {selectedTypes.size > 0 && (
@@ -1149,6 +1165,11 @@ const HomePage: React.FC = () => {
           onCancel={() => setIsPanelSettingsModalOpen(false)}
         />
       )}
+      <CorporationStatsModal
+        isOpen={isStatsModalOpen}
+        onClose={() => setIsStatsModalOpen(false)}
+        type={statsType}
+      />
     </div>
   );
 };

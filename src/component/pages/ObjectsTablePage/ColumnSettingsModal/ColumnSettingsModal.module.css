@@ -1,5 +1,4 @@
 .modalBackdrop {
-  
     position: fixed;
     top: 0;
     left: 0;
@@ -53,7 +52,6 @@
     padding-right: 10px;
 }
 
-/* Стилизация скроллбара */
 .columnList::-webkit-scrollbar {
   width: 8px;
 }
@@ -87,7 +85,6 @@
 .moveButtons {
     display: flex;
     gap: 4px;
-    /* Центрирование кнопок по вертикали */
     align-items: center;
 }
 
@@ -103,7 +100,6 @@
     cursor: pointer;
     color: #333;
     transition: background-color 0.2s ease;
-    /* Центрирование содержимого кнопки */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -118,11 +114,9 @@
     display: flex;
     justify-content: flex-end;
     gap: 16px;
-    flex-wrap: wrap; /* Для адаптивности */
+    flex-wrap: wrap;
 }
 
-
-/* ✅ Кнопка закрытия — вплотную к правому верхнему углу */
 .resetButton {
   position: absolute;
   top: 0;
@@ -141,29 +135,202 @@
   border-top-right-radius: 8px;
 }
 
-/* ✅ По умолчанию: прозрачный фон, красный крестик */
 .resetButton .closeIcon {
   font-size: 16px;
-  font-weight: 600; /* 🔥 Потолще */
+  font-weight: 600;
   line-height: 1;
-  color: #c41e3a; /* Красный крест */
+  color: #c41e3a;
   transition: color 0.1s;
 }
 
-/* ✅ При наведении: красный фон, БЕЛЫЙ крестик */
 .resetButton:hover {
-  background-color:  #c41e3a;
+  background-color: #c41e3a;
 }
 
 .resetButton:hover .closeIcon {
-  color: #ffffff; /* Белый крест на красном фоне */
+  color: #ffffff;
 }
 
-/* ✅ При нажатии: темнее красный */
 .resetButton:active {
   background-color: #c50b1a;
 }
 
 .resetButton:active .closeIcon {
   color: #ffffff;
+}
+
+.togglePreviewBtn {
+  position: absolute;
+  top: 0;
+  right: 60px;
+  width: 60px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.1s;
+  z-index: 3;
+}
+
+.togglePreviewBtn .toggleIcon {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  font-family: monospace;
+  color: #39a2cf;
+  transition: color 0.1s;
+}
+
+.togglePreviewBtn:hover {
+  background-color: rgba(36, 132, 185, 0.8);
+}
+
+.togglePreviewBtn:hover .toggleIcon {
+  color: #ffffff;
+}
+
+.togglePreviewBtn:active {
+  background-color: rgba(36, 132, 185, 0.8);
+}
+
+.togglePreviewBtn:active .toggleIcon {
+  color: #ffffff;
+}
+
+.togglePreviewBtn.active .toggleIcon {
+  color: #9b59b6;
+}
+
+/* ✅ Контент настроек пагинации */
+.paginationContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 8px 4px;
+}
+
+/* ✅ Панель переключения пагинации - идентична панели строк */
+.paginationTogglePanel {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  user-select: none;
+}
+
+.paginationTogglePanel:hover {
+  border-color: #3498db;
+}
+
+.paginationToggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+.paginationToggleLabel input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3498db;
+  flex-shrink: 0;
+}
+
+.toggleLabelText {
+  font-weight: 500;
+  color: #333;
+}
+
+/* ✅ Примечание - одинаковое для обеих панелей */
+.paginationHint {
+  font-size: 13px;
+  color: #555;
+  padding: 10px 12px;
+  background: #e8f4fd;
+  border-left: 4px solid #3498db;
+  /* ✅ Прямая левая граница - без закруглений слева */
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  /* ✅ Закругленные правые углы */
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  /* ✅ Отступ слева совпадает с позицией чекбокса/текста */
+  margin-left: 0;
+  line-height: 1.5;
+}
+
+.paginationHint strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+/* ✅ Панель количества строк - идентична панели чекбокса */
+.paginationRowsPanel {
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.paginationRowsPanel.disabled {
+  opacity: 0.6;
+}
+
+.paginationRowsLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.rowsLabel {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.rowsPerPageInput {
+  width: 100px;
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.2s;
+  background: #ffffff;
+}
+
+.rowsPerPageInput:hover:not(:disabled) {
+  border-color: #3498db;
+}
+
+.rowsPerPageInput:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+.rowsPerPageInput:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* Убираем стрелки у number input */
+.rowsPerPageInput::-webkit-outer-spin-button,
+.rowsPerPageInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

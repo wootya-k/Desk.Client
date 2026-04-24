@@ -23,10 +23,10 @@ interface Dictionary {
 interface ControlConfig {
     id: string;
     label: string;
-    type: 'string' | 'number' | 'boolean' | 'object';
+    type: 'string' | 'date' | 'date-time' | 'time' | 'number' | 'boolean' | 'object';
     dictionaryId?: string;
     required: boolean;
-    metadata: boolean; // ИЗМЕНЕНО: representation → metadata
+    metadata: boolean;
     key: string;
 }
 
@@ -34,7 +34,7 @@ interface PageState {
     id?: string;
     objectId: string;
     objectTitle: string;
-    objectViewCategory: string; // Новое свойство
+    objectViewCategory: string;
     objectRestricted: boolean;
     controls: ControlConfig[];
 }
@@ -62,7 +62,7 @@ const decodeState = (encoded: string): PageState | null => {
 
 const SchemaEditorPage: React.FC = () => {
 
-const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const navigate = useNavigate();
     const { schemaId: urlSchemaId, type } = useParams<{
         schemaId?: string;
@@ -88,18 +88,10 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const isFormValid = useMemo(() => {
         if (!pageState) return false;
-
-        // Проверка основных полей
         if (!pageState.objectId || !pageState.objectTitle) return false;
-
-        // Проверка всех контролов
         return pageState.controls.every(control => {
-            // Проверка идентификатора и названия
             if (!control.id || !control.label) return false;
-
-            // Проверка справочника если тип object
             if (control.type === 'object' && !control.dictionaryId) return false;
-
             return true;
         });
     }, [pageState]);
@@ -147,7 +139,6 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
             if (urlSchemaId && urlSchemaId !== 'new') {
                 try {
                     const schemaData = await fetchSchemaById(urlSchemaId);
-
                     const jsonSchema = JSON.parse(schemaData.schemaValid);
                     const uiSchema = JSON.parse(schemaData.schemaForms);
 
@@ -155,10 +146,25 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
                         const propName = element.scope.split('/').pop()!;
                         const prop = jsonSchema.properties[propName];
 
+                        let controlType: ControlConfig['type'] = 'string';
+                        if (prop.$ref) {
+                            controlType = 'object';
+                        } else if (prop.format === 'date') {
+                            controlType = 'date';
+                        } else if (prop.format === 'date-time') {
+                            controlType = 'date-time';
+                        } else if (prop.format === 'time') {
+                            controlType = 'time';
+                        } else if (prop.type === 'number' || prop.type === 'integer') {
+                            controlType = 'number';
+                        } else if (prop.type === 'boolean') {
+                            controlType = 'boolean';
+                        }
+
                         return {
                             id: propName,
                             label: element.label,
-                            type: prop.$ref ? 'object' : (prop.type || 'string'),
+                            type: controlType,
                             dictionaryId: prop.$ref?.split('/').pop(),
                             required: jsonSchema.required?.includes(propName) || false,
                             metadata: jsonSchema.metadata?.includes(propName) || false,
@@ -182,7 +188,7 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
                 setPageState({
                     objectId: type || '',
                     objectTitle: '',
-                    objectViewCategory: '', // Новое свойство
+                    objectViewCategory: '',
                     objectRestricted: false,
                     controls: [{
                         id: `field_${Date.now()}`,
@@ -199,10 +205,8 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
         loadInitialState();
     }, [urlSchemaId, type, navigate, searchParams]);
 
-
     const generateUISchema = useCallback((): any => {
         if (!pageState) return { type: "VerticalLayout", elements: [] };
-
         return {
             type: "VerticalLayout",
             elements: pageState.controls.map(control => ({
@@ -220,7 +224,7 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
             title: '',
             properties: {},
             required: [],
-            metadata: [] // ИЗМЕНЕНО: representation → metadata
+            metadata: []
         };
 
         return {
@@ -228,59 +232,55 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
             type: "object",
             title: pageState.objectTitle,
             properties: pageState.controls.reduce((acc, control) => {
-                acc[control.id] = control.type === 'object' && control.dictionaryId
-                    ? { $ref: `dictionaries/${control.dictionaryId}`, title: control.label }
-                    : { type: control.type, title: control.label };
+                let baseProp: any = { type: 'string', title: control.label };
+
+                if (control.type === 'object' && control.dictionaryId) {
+                    baseProp = { $ref: `dictionaries/${control.dictionaryId}`, title: control.label };
+                } else if (control.type === 'date') {
+                    baseProp = { type: 'string', title: control.label, format: 'date' };
+                } else if (control.type === 'date-time') {
+                    baseProp = { type: 'string', title: control.label, format: 'date-time' };
+                } else if (control.type === 'time') {
+                    baseProp = { type: 'string', title: control.label, format: 'time' };
+                } else if (control.type === 'number') {
+                    baseProp = { type: 'number', title: control.label };
+                } else if (control.type === 'boolean') {
+                    baseProp = { type: 'boolean', title: control.label };
+                }
+                
+                acc[control.id] = baseProp;
                 return acc;
             }, {} as Record<string, any>),
             required: pageState.controls.filter(c => c.required).map(c => c.id),
-            metadata: pageState.controls.filter(c => c.metadata).map(c => c.id) // ИЗМЕНЕНО: representation → metadata
+            metadata: pageState.controls.filter(c => c.metadata).map(c => c.id)
         };
     }, [pageState]);
 
-
-    const handleCancelDelete = () => {
-        setIsDeleteModalOpen(false);
-    };
+    const handleCancelDelete = () => setIsDeleteModalOpen(false);
 
     const handleObjectViewCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!pageState) return;
-        setPageState({
-            ...pageState,
-            objectViewCategory: e.currentTarget.value
-        });
+        setPageState({ ...pageState, objectViewCategory: e.currentTarget.value });
     };
 
     const handleObjectIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!pageState) return;
-        // Разрешаем только латинские буквы, цифры и символы -_.
         const value = e.currentTarget.value.replace(/[^a-zA-Z0-9\-_.]/g, '');
-        setPageState({
-            ...pageState,
-            objectId: value
-        });
+        setPageState({ ...pageState, objectId: value });
     };
 
     const handleObjectTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!pageState) return;
-        setPageState({
-            ...pageState,
-            objectTitle: e.currentTarget.value
-        });
+        setPageState({ ...pageState, objectTitle: e.currentTarget.value });
     };
 
     const handleObjectRestrictedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!pageState) return;
-        setPageState({
-            ...pageState,
-            objectRestricted: e.currentTarget.checked
-        });
+        setPageState({ ...pageState, objectRestricted: e.currentTarget.checked });
     };
 
-    // Обработчики изменений
     const handleAddControl = () => {
         if (!pageState) return;
-
         setPageState(prev => {
             if (!prev) return prev;
             return {
@@ -292,7 +292,7 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
                         label: 'Новое поле',
                         type: 'string',
                         required: false,
-                        metadata: false, // ИЗМЕНЕНО: representation → metadata
+                        metadata: false,
                         key: `field_${Date.now()}`
                     }
                 ]
@@ -302,47 +302,33 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const handleRemoveControl = (index: number) => {
         if (!pageState || pageState.controls.length <= 1) return;
-
         setPageState(prev => {
             if (!prev) return prev;
-            return {
-                ...prev,
-                controls: prev.controls.filter((_, i) => i !== index)
-            };
+            return { ...prev, controls: prev.controls.filter((_, i) => i !== index) };
         });
     };
 
-    const handleControlChange = (
-        index: number,
-        field: keyof ControlConfig,
-        value: string | boolean
-    ) => {
+    const handleControlChange = (index: number, field: keyof ControlConfig, value: string | boolean) => {
         if (!pageState) return;
-
         setPageState(prev => {
             if (!prev) return prev;
             const newControls = [...prev.controls];
-
             if (typeof value === 'string') {
-                if (field === 'id') {
-                    value = value.replace(/\s+/g, '');
-                }
+                if (field === 'id') value = value.replace(/\s+/g, '');
                 newControls[index] = { ...newControls[index], [field]: value };
             } else {
                 newControls[index] = { ...newControls[index], [field]: value };
             }
-
+            // Сброс dictionaryId если тип не object
             if (field === 'type' && value !== 'object') {
                 newControls[index].dictionaryId = undefined;
             }
-
             return { ...prev, controls: newControls };
         });
     };
 
     const handleMoveControl = (fromIndex: number, toIndex: number) => {
         if (!pageState || toIndex < 0 || toIndex >= pageState.controls.length) return;
-
         setPageState(prev => {
             if (!prev) return prev;
             const newControls = [...prev.controls];
@@ -352,47 +338,31 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
         });
     };
 
-    // Drag & Drop handlers
-    const handleDragStart = (index: number) => {
-        setDragIndex(index);
-    };
-
+    const handleDragStart = (index: number) => setDragIndex(index);
     const handleDragOver = (e: React.DragEvent, index: number) => {
         e.preventDefault();
         if (dragIndex === null || dragIndex === index || !pageState) return;
         setOverIndex(index);
     };
-
-    const handleDragLeave = () => {
-        setOverIndex(null);
-    };
-
+    const handleDragLeave = () => setOverIndex(null);
     const handleDrop = () => {
-        if (dragIndex !== null && overIndex !== null &&
-            dragIndex !== overIndex && pageState) {
+        if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex && pageState) {
             handleMoveControl(dragIndex, overIndex);
         }
         setDragIndex(null);
         setOverIndex(null);
     };
+    const handleDragEnd = () => { setDragIndex(null); setOverIndex(null); };
 
-    const handleDragEnd = () => {
-        setDragIndex(null);
-        setOverIndex(null);
-    };
-
-    const openDeleteModal = () => {
-        setIsDeleteModalOpen(true);
-    };
+    const openDeleteModal = () => setIsDeleteModalOpen(true);
 
     const handleDelete = async () => {
         if (pageState && pageState.id) {
             try {
                 await deleteSchema(pageState.id);
                 navigate('/');
-            }
-            catch (error) {
-                navigate(`/view-objects/${pageState.objectId}`)
+            } catch (error) {
+                navigate(`/view-objects/${pageState.objectId}`);
                 console.log('Не удалось удалить схему, у неё есть объекты');
             }
         }
@@ -400,28 +370,23 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const handleSave = async () => {
         if (!pageState) return;
-
         const uiSchema = generateUISchema();
         const jsonSchema = generateJSONSchema();
-
         const dto: SchemaEditorDto = {
             id: pageState.id || '',
             title: pageState.objectTitle,
             restricted: pageState.objectRestricted,
-            viewCategory: pageState.objectViewCategory, // Новое свойство
+            viewCategory: pageState.objectViewCategory,
             schemaValid: JSON.stringify(jsonSchema),
             schemaForms: JSON.stringify(uiSchema)
-
         };
-
         try {
-            let result;
             if (pageState.id) {
-                result = await updateSchema(pageState.id, dto);
+                await updateSchema(pageState.id, dto);
             } else {
-                result = await createSchema(pageState.objectId, dto);
+                await createSchema(pageState.objectId, dto);
             }
-            navigate(`/view-objects/${urlSchemaId}`, { replace: true });
+            navigate(`/view-objects/${pageState.objectId}`, { replace: true });
         } catch (error) {
             console.error('Ошибка сохранения:', error);
         }
@@ -429,7 +394,7 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const handleCancel = () => {
         if (pageState && pageState.id) {
-            navigate(`/view-objects/${pageState.objectId}`)
+            navigate(`/view-objects/${pageState.objectId}`);
         } else {
             navigate(-1);
         }
@@ -448,110 +413,37 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
         <div className={styles.pageContainer}>
             <div className={styles.layoutContainer}>
                 <div className={styles.sidePanel}>
-                    <SchemaPreview
-                        title="UI Schema"
-                        schema={generateUISchema()}
-                        isValid={validationResult?.uiValid ?? null}
-                    />
+                    <SchemaPreview title="UI Schema" schema={generateUISchema()} isValid={validationResult?.uiValid ?? null} />
                 </div>
-
                 <div className={styles.mainPanel}>
                     <div className={styles.schemaConfig}>
                         <div className={styles.objectConfig}>
                             <div className={styles.objectRow}>
                                 <label className={styles.objectField}>
                                     <span className={styles.fieldLabel}>Идентификатор объекта</span>
-                                    <input
-                                        type="text"
-                                        value={pageState?.objectId || ''}
-                                        onChange={handleObjectIdChange}
-                                        className={styles.titleInput}
-                                        placeholder="object-id"
-                                        disabled={!!pageState?.id}
-                                        title="Только английские буквы и цифры"
-                                    />
+                                    <input type="text" value={pageState?.objectId || ''} onChange={handleObjectIdChange} className={styles.titleInput} placeholder="object-id" disabled={!!pageState?.id} title="Только английские буквы и цифры" />
                                 </label>
-
                                 <label className={styles.objectField}>
                                     <span className={styles.fieldLabel}>Название объекта</span>
-                                    <input
-                                        type="text"
-                                        value={pageState?.objectTitle || ''}
-                                        onChange={handleObjectTitleChange}
-                                        className={styles.titleInput}
-                                        placeholder="Название объекта"
-                                        title={!pageState.objectTitle ? "Обязательное поле" : ""}
-                                    />
+                                    <input type="text" value={pageState?.objectTitle || ''} onChange={handleObjectTitleChange} className={styles.titleInput} placeholder="Название объекта" title={!pageState.objectTitle ? "Обязательное поле" : ""} />
                                 </label>
-
                                 <label className={styles.objectField}>
                                     <span className={styles.fieldLabel}>Категория представления</span>
-                                    <input
-                                        type="text"
-                                        value={pageState?.objectViewCategory || ''}
-                                        onChange={handleObjectViewCategoryChange}
-                                        className={styles.titleInput}
-                                        placeholder="Категория представления"
-                                        title={!pageState.objectTitle ? "Обязательное поле" : ""}
-                                    />
+                                    <input type="text" value={pageState?.objectViewCategory || ''} onChange={handleObjectViewCategoryChange} className={styles.titleInput} placeholder="Категория представления" title={!pageState.objectTitle ? "Обязательное поле" : ""} />
                                 </label>
-
                                 <label className={styles.restrictedCheckbox}>
-                                    <input
-                                        type="checkbox"
-                                        checked={pageState?.objectRestricted || false}
-                                        onChange={handleObjectRestrictedChange}
-                                        className={styles.customCheckbox}
-                                    />
-                                    <span>
-                                        <div>Ограниченное</div>
-                                        <div> количество</div>
-                                    </span>
+                                    <input type="checkbox" checked={pageState?.objectRestricted || false} onChange={handleObjectRestrictedChange} className={styles.customCheckbox} />
+                                    <span><div>Ограниченное</div><div> количество</div></span>
                                 </label>
                             </div>
                         </div>
-
                         <div className={styles.controlsHeader}>
-                            <FilledColorButton
-                                width='150px'
-                                mainColor="#FFFFFF"
-                                additionalColor="#e74c3c"
-                                onClick={openDeleteModal}
-                                disabled={!urlSchemaId}
-                            >
-                                Удалить
-                            </FilledColorButton>
-                            <FilledColorButton
-                                width='150px'
-                                mainColor="#FFFFFF"
-                                additionalColor="#f39c12"
-                                onClick={handleSave}
-                            >
-                                Сохранить
-                            </FilledColorButton>
-
-                            <FilledColorButton
-                                width='170px'
-                                mainColor="#FFFFFF"
-                                additionalColor="#e74c3c"
-                                onClick={handleCancel}
-                            >
-                                Отмена
-                            </FilledColorButton>
-
-                            <FilledColorButton
-                                width='150px'
-                                onClick={handleAddControl}
-                                disabled={isDictionariesLoading}
-                            >
-                                + Добавить поле
-                            </FilledColorButton>
+                            <FilledColorButton width='150px' mainColor="#FFFFFF" additionalColor="#e74c3c" onClick={openDeleteModal} disabled={!urlSchemaId}>Удалить</FilledColorButton>
+                            <FilledColorButton width='150px' mainColor="#FFFFFF" additionalColor="#f39c12" onClick={handleSave}>Сохранить</FilledColorButton>
+                            <FilledColorButton width='170px' mainColor="#FFFFFF" additionalColor="#e74c3c" onClick={handleCancel}>Отмена</FilledColorButton>
+                            <FilledColorButton width='150px' onClick={handleAddControl} disabled={isDictionariesLoading}>+ Добавить поле</FilledColorButton>
                         </div>
-
-                        <ul
-                            className={styles.columnList}
-                            ref={listRef}
-                        >
+                        <ul className={styles.columnList} ref={listRef}>
                             {pageState.controls.map((control, index) => (
                                 <ControlItem
                                     key={control.key}
@@ -576,19 +468,11 @@ const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
                     </div>
                 </div>
                 {isDeleteModalOpen && ReactDOM.createPortal(
-                    <DeleteConfirmationModal
-                        preview='Вы уверены, что хотите удалить этот тип?'
-                        onConfirm={handleDelete}
-                        onCancel={handleCancelDelete}
-                    />,
+                    <DeleteConfirmationModal preview='Вы уверены, что хотите удалить этот тип?' onConfirm={handleDelete} onCancel={handleCancelDelete} />,
                     document.getElementById('modal-root')!
                 )}
                 <div className={styles.sidePanel}>
-                    <SchemaPreview
-                        title="JSON Schema"
-                        schema={generateJSONSchema()}
-                        isValid={validationResult?.jsonValid ?? null}
-                    />
+                    <SchemaPreview title="JSON Schema" schema={generateJSONSchema()} isValid={validationResult?.jsonValid ?? null} />
                 </div>
             </div>
         </div>

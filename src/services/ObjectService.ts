@@ -320,7 +320,7 @@ interface ChangeHistoryDto {
 
 export const fetchHistoryById = async (id: string): Promise<ChangeHistory[]> => {
   try {
-    const url = await buildUrl(`/api/objects/history/${id}`);
+    const url = await buildUrl(`/api/objects/${id}/history`);
     const response = await fetch(url);
 
     if (!response.ok) {

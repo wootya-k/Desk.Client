@@ -9,7 +9,7 @@ interface Dictionary {
 interface ControlConfig {
   id: string;
   label: string;
-  type: 'string' | 'number' | 'boolean' | 'object';
+  type: 'string' | 'date' | 'date-time' | 'time' | 'number' | 'boolean' | 'object';
   dictionaryId?: string;
   required: boolean;
   metadata: boolean;
@@ -34,12 +34,10 @@ interface ControlItemProps {
   onDragEnd: () => void;
 }
 
-// 🔍 Хелпер: проверяет, был ли клик по интерактивному элементу
 const isInteractiveElement = (target: EventTarget | null): boolean => {
   const element = target as HTMLElement;
   if (!element) return false;
   
-  // Проверяем сам элемент и его родителей
   return (
     element.tagName === 'INPUT' ||
     element.tagName === 'SELECT' ||
@@ -48,10 +46,6 @@ const isInteractiveElement = (target: EventTarget | null): boolean => {
     element.closest('input, select, textarea, button, a, [contenteditable]') !== null
   );
 };
-
-// ControlItem.tsx
-
-// ... интерфейсы без изменений ...
 
 const ControlItem: React.FC<ControlItemProps> = ({
   control,
@@ -73,10 +67,8 @@ const ControlItem: React.FC<ControlItemProps> = ({
   return (
     <li 
       className={`${styles.controlItem} ${dragIndex === index ? styles.dragging : ''} ${overIndex === index ? styles.dragOver : ''}`}
-      
-      // ✅ li теперь drop-зона: разрешаем дроп и передаём индекс
       onDragOver={(e) => {
-        e.preventDefault(); // ← КРИТИЧНО: без этого onDrop не сработает!
+        e.preventDefault();
         e.stopPropagation();
         onDragOver(e, index);
       }}
@@ -92,18 +84,14 @@ const ControlItem: React.FC<ControlItemProps> = ({
     >
       <div className={styles.controlHeader}>
         <div className={styles.controlActions}>
-          {/* ✅ Хендл — только источник драга */}
           <div 
             className={styles.dragHandle} 
             title="Перетащите для изменения порядка"
             draggable
             onDragStart={(e) => {
               e.stopPropagation();
-              
-              // 🔥 КРИТИЧНО: передаём индекс через dataTransfer
               e.dataTransfer.effectAllowed = 'move';
               e.dataTransfer.setData('text/plain', index.toString());
-              
               onDragStart(index);
             }}
             onDragEnd={(e) => {
@@ -114,7 +102,6 @@ const ControlItem: React.FC<ControlItemProps> = ({
             ⋮⋮
           </div>
           
-          {/* ... кнопки и чекбоксы без изменений ... */}
           <div className={styles.moveButtons}>
             <button
               className={styles.moveButton}
@@ -166,7 +153,6 @@ const ControlItem: React.FC<ControlItemProps> = ({
         </div>
       </div>
       
-      {/* ... поля ввода без изменений ... */}
       <div className={styles.controlFields}>
         <div className={styles.fieldGroup}>
           <label className={styles.fieldWithLabel}>
@@ -200,13 +186,24 @@ const ControlItem: React.FC<ControlItemProps> = ({
             <span className={styles.fieldLabel}>Тип данных</span>
             <select
               value={control.type}
-              onChange={e => onControlChange(index, 'type', e.currentTarget.value as any)}
+              onChange={e => {
+                const newType = e.currentTarget.value as ControlConfig['type'];
+                onControlChange(index, 'type', newType);
+                
+                // Сброс dictionaryId если тип не object
+                if (newType !== 'object') {
+                  onControlChange(index, 'dictionaryId', '');
+                }
+              }}
               disabled={isDictionariesLoading}
               className={styles.compactSelect}
             >
               <option value="string">Строка</option>
               <option value="number">Число</option>
-              <option value="boolean">Логический</option>
+              <option value="time">Время</option>
+              <option value="date">Дата</option>
+              <option value="date-time">Дата и время</option>
+              <option value="boolean">Предикат</option>
               <option value="object">Справочник</option>
             </select>
           </label>

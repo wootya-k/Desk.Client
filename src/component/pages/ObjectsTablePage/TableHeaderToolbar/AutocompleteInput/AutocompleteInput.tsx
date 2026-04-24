@@ -1,10 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import styles from './AutocompleteInput.module.css';
 
-interface SavedQuery {
-  name: string;
-  body: string;
-}
+interface SavedQuery { name: string; body: string; }
 
 interface AutocompleteInputProps {
   value: string;
@@ -26,6 +23,25 @@ function capitalizeFirst(str: string): string {
   return str[0].toUpperCase() + str.slice(1);
 }
 
+const findLastSegmentStart = (str: string): number => {
+  let maxPos = -1;
+  const check = (sep: string, shift: number) => {
+    const p = str.lastIndexOf(sep);
+    if (p !== -1 && p + shift > maxPos) maxPos = p + shift;
+  };
+  
+  // 🔥 Ключевое исправление: сдвиги, чтобы разделитель оставался в префиксе
+  check('(', 1);      // после "(" → префикс включает "("
+  check('&', 1);      // после "&" → префикс включает "&"
+  check('||', 2);     // после "||" → префикс включает "||"
+  check(' и ', 3);    // после " и "
+  check(' и', 2);     // после " и" (без пробела в конце)
+  check(' или ', 5);  // после " или "
+  check(' или', 4);   // после " или" (без пробела в конце)
+  
+  return Math.max(0, maxPos);
+};
+
 const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   value,
   onChange,
@@ -46,211 +62,180 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   const [savedQueryCycleIndex, setSavedQueryCycleIndex] = useState(-1);
   const [showCycleIndicator, setShowCycleIndicator] = useState(false);
 
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const suggestionsListRef = useRef<HTMLUListElement | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsListRef = useRef<HTMLUListElement>(null);
   const suggestionItemRefs = useRef<(HTMLLIElement | null)[]>([]);
+  
+  // 🔥 Реф для отмены автозакрытия списка после клика по подсказке
+  const blurTimeoutRef = useRef<number | null>(null);
 
-  const splitQuery = useCallback((str: string): string[] => {
-    return str.split(/\s*(&|\|\|)\s*/).map(s => s.trim()).filter(Boolean);
-  }, []);
-
-  const applySuggestion = useCallback((suggestion: string) => {
-    const segments = splitQuery(value);
-    if (!segments.length) {
-      onChange(suggestion);
-      return;
-    }
-    const lastSegment = segments[segments.length - 1];
-    let foundOperator: string | null = null;
-    let operatorIndex = -1;
-
-    for (const op of operators) {
-      const i = lastSegment.indexOf(op);
-      if (i !== -1) {
-        foundOperator = op;
-        operatorIndex = i;
-        break;
-      }
-    }
-
-    if (foundOperator) {
-      const fieldPart = lastSegment.substring(0, operatorIndex);
-      const newSegment = fieldPart + foundOperator + suggestion;
-      segments[segments.length - 1] = newSegment;
-    } else {
-      segments[segments.length - 1] = suggestion;
-    }
-
-    onChange(segments.join(' '));
-    setActiveIndex(-1);
-    setShowSuggestions(false);
-  }, [value, onChange, splitQuery, operators]);
-
-  const getDistinctValuesForEnField = useCallback((enField: string): string[] => {
-    const setOfValues = new Set<string>();
-    rowsData.forEach(row => {
-      const val = row[enField];
-      if (val !== undefined && val !== null) {
-        let displayValue: string;
-        if (typeof val === 'boolean') {
-          displayValue = val ? 'Да' : 'Нет';
-        } else {
-          displayValue = String(val);
-        }
-        setOfValues.add(displayValue);
-      }
+  // 🔹 Кэш значений полей
+  const fieldValuesCache = useMemo(() => {
+    const cache: Record<string, string[]> = {};
+    ruFields.forEach(ruField => {
+      const enField = ruToEnMap[ruField.toLowerCase()];
+      if (!enField) return;
+      const values = new Set<string>();
+      rowsData.forEach(row => {
+        const val = row[enField];
+        if (val == null) return;
+        const display = typeof val === 'boolean' ? (val ? 'Да' : 'Нет') : String(val);
+        values.add(capitalizeFirst(display));
+      });
+      cache[ruField] = Array.from(values).sort();
     });
-    return Array.from(setOfValues).map(capitalizeFirst);
-  }, [rowsData]);
+    return cache;
+  }, [rowsData, ruFields, ruToEnMap]);
 
-  const getSuggestions = useCallback(() => {
-    const segments = splitQuery(value);
-    if (!segments.length) {
+  // 🔹 Логика подсказок
+  const computeSuggestions = useCallback(() => {
+    const input = value.trim();
+    if (!input) return ruFields.map(capitalizeFirst);
+
+    const segStart = findLastSegmentStart(input);
+    let currentToken = input.slice(segStart).trim();
+
+    // Пустой токен или чистый коннектор → предлагаем поля
+    if (!currentToken || /^(и|или)$/i.test(currentToken)) {
       return ruFields.map(capitalizeFirst);
     }
-    const lastSegment = segments[segments.length - 1].toLowerCase();
 
-    let foundOperator: string | null = null;
-    for (const op of operators) {
-      if (lastSegment.includes(op)) {
-        foundOperator = op;
-        break;
-      }
+    // Закрывающая скобка → коннекторы
+    if (currentToken.endsWith(')')) {
+      return ['и', 'или'];
     }
 
-    if (!foundOperator) {
-      return ruFields
-        .filter((f) => f.startsWith(lastSegment))
-        .map(capitalizeFirst);
-    } else {
-      const operatorIndex = lastSegment.indexOf(foundOperator);
-      const fieldPart = lastSegment.substring(0, operatorIndex).trim();
-      const valuePart = lastSegment.substring(operatorIndex + foundOperator.length).trim();
+    // Парсим условие field<op>value
+    let opFound: string | null = null;
+    let opPos = -1;
+    for (const op of ['!=', '=', '>', '<']) {
+      const pos = currentToken.indexOf(op);
+      if (pos !== -1) { opFound = op; opPos = pos; break; }
+    }
 
-      const enField = ruToEnMap[fieldPart];
+    if (opFound) {
+      const fieldName = currentToken.slice(0, opPos).trim().toLowerCase();
+      const valPart = currentToken.slice(opPos + opFound.length).trim().toLowerCase();
+      const enField = ruToEnMap[fieldName];
+
       if (!enField) {
-        return [];
+        return ruFields.filter(f => f.toLowerCase().startsWith(fieldName)).map(capitalizeFirst);
       }
-      if (foundOperator === '=' || foundOperator === '!=') {
-        const distinctVals = getDistinctValuesForEnField(enField);
-        if (!valuePart) {
-          return distinctVals;
-        } else {
-          return distinctVals.filter(val =>
-            val.toLowerCase().includes(valuePart)
-          );
-        }
-      } else {
-        return [];
+      if (!valPart) {
+        return fieldValuesCache[fieldName] || [];
       }
+      const allVals = fieldValuesCache[fieldName] || [];
+      const exactMatch = allVals.some(v => v.toLowerCase() === valPart);
+      
+      if (exactMatch) {
+        const openCount = (input.match(/\(/g) || []).length;
+        const closeCount = (input.match(/\)/g) || []).length;
+        const res = ['и', 'или'];
+        if (openCount > closeCount) res.unshift(')');
+        return res;
+      }
+      return allVals.filter(v => v.toLowerCase().includes(valPart));
     }
-  }, [value, splitQuery, ruFields, operators, ruToEnMap, getDistinctValuesForEnField]);
 
-  useEffect(() => {
-    if (showSuggestions) {
-      const s = getSuggestions().filter((item) => item.trim() !== '');
-      setSuggestions(s);
-    } else {
-      setSuggestions([]);
-    }
-  }, [value, showSuggestions, getSuggestions]);
+    // Нет оператора → печатаем имя поля
+    const cleanToken = currentToken.replace(/^\s*\(/, '').trim();
+    return ruFields.filter(f => f.toLowerCase().startsWith(cleanToken.toLowerCase())).map(capitalizeFirst);
+  }, [value, ruFields, ruToEnMap, fieldValuesCache]);
 
+  // 🔹 Обновление списка подсказок
   useEffect(() => {
     if (!showSuggestions) {
-      setSavedQueryCycleIndex(-1);
-      setShowCycleIndicator(false);
+      setSuggestions([]);
+      return;
     }
-  }, [showSuggestions]);
-
-  useEffect(() => {
-    setSavedQueryCycleIndex(-1);
-    setShowCycleIndicator(false);
-  }, [savedQueries.length]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-
-    console.log('🎹 Key:', e.key, '| Ctrl:', e.ctrlKey, '| Meta:', e.metaKey, '| Shift:', e.shiftKey);
-  // 🔥 Ctrl+ArrowDown / Ctrl+ArrowUp — цикл по сохранённым запросам
-  // (работает даже когда список подсказок закрыт)
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (savedQueries.length === 0) return;
-
-    const direction = e.key === 'ArrowDown' ? 1 : -1;
-    const newIndex = (savedQueryCycleIndex + direction + savedQueries.length) % savedQueries.length;
-    
-    setSavedQueryCycleIndex(newIndex);
-    const selected = savedQueries[newIndex];
-    
-    onChange(selected.body);
-    setShowCycleIndicator(true);
-    
-    onCycleSavedQuery?.(selected, newIndex, savedQueries.length);
-    
-    // Скрыть индикатор через 2 секунды
-    setTimeout(() => setShowCycleIndicator(false), 2000);
-    
-    return;
-  }
-
-  // ESC: сначала закрываем список, потом снимаем фокус
-  if (e.key === 'Escape') {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (showSuggestions) {
-      setShowSuggestions(false);
-      setActiveIndex(-1);
-    } else {
-      inputRef.current?.blur();
-    }
-    return;
-  }
-
-  // Ctrl+Space: переключатель (открыть/закрыть)
-  if ((e.ctrlKey || e.metaKey) && e.code === 'Space') {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowSuggestions(prev => !prev);
+    const s = computeSuggestions().filter(Boolean);
+    setSuggestions(s);
     setActiveIndex(-1);
-    return;
-  }
+  }, [value, showSuggestions, computeSuggestions]);
 
-  // Если список подсказок открыт — обрабатываем навигацию по нему
-  if (showSuggestions && suggestions.length > 0) {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIndex(prev => {
-        const next = prev + 1;
-        return next >= suggestions.length ? 0 : next;
-      });
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIndex(prev => {
-        const next = prev - 1;
-        return next < 0 ? suggestions.length - 1 : next;
-      });
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (activeIndex >= 0 && activeIndex < suggestions.length) {
-        applySuggestion(suggestions[activeIndex]);
+  // 🔹 Применение подсказки
+  const applySuggestion = useCallback((suggestion: string) => {
+    // 🔥 Отменяем закрытие списка по blur, если оно было запланировано
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+
+    if (suggestion === 'и' || suggestion === 'или') {
+      onChange(`${value.trim()} ${suggestion} `);
+    } else if (suggestion === ')') {
+      onChange(`${value.trim()})`);
+    } else {
+      const segStart = findLastSegmentStart(value);
+      const prefix = value.slice(0, segStart).trimEnd();
+      const currentToken = value.slice(segStart).trim();
+
+      let newToken = suggestion;
+      for (const op of ['!=', '=', '>', '<']) {
+        const idx = currentToken.indexOf(op);
+        if (idx !== -1) {
+          newToken = currentToken.slice(0, idx + op.length) + suggestion;
+          break;
+        }
       }
-    } else if (e.key === 'Tab') {
-      if (activeIndex >= 0 && activeIndex < suggestions.length) {
-        applySuggestion(suggestions[activeIndex]);
+
+      const spacer = prefix && !prefix.endsWith(' ') && !prefix.endsWith('(') ? ' ' : '';
+      onChange(prefix ? `${prefix}${spacer}${newToken}` : newToken);
+    }
+    
+    // 🔥 Явно оставляем список открытым для следующего шага
+    setShowSuggestions(true);
+    setActiveIndex(-1);
+  }, [value, onChange]);
+
+  // 🔹 Клавиатура
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      if (!savedQueries.length) return;
+      const dir = e.key === 'ArrowDown' ? 1 : -1;
+      const newIdx = (savedQueryCycleIndex + dir + savedQueries.length) % savedQueries.length;
+      setSavedQueryCycleIndex(newIdx);
+      onChange(savedQueries[newIdx].body);
+      setShowCycleIndicator(true);
+      onCycleSavedQuery?.(savedQueries[newIdx], newIdx, savedQueries.length);
+      setTimeout(() => setShowCycleIndicator(false), 1500);
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (showSuggestions) { setShowSuggestions(false); setActiveIndex(-1); }
+      else inputRef.current?.blur();
+      return;
+    }
+
+    if ((e.ctrlKey || e.metaKey) && e.code === 'Space') {
+      e.preventDefault();
+      setShowSuggestions(v => !v);
+      return;
+    }
+
+    if (showSuggestions && suggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActiveIndex(i => (i + 1) % suggestions.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActiveIndex(i => (i - 1 + suggestions.length) % suggestions.length);
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        if (activeIndex >= 0 && activeIndex < suggestions.length) {
+          e.preventDefault();
+          applySuggestion(suggestions[activeIndex]);
+        }
       }
     }
-  }
-};
+  }, [showSuggestions, suggestions, activeIndex, savedQueries, savedQueryCycleIndex, onChange, applySuggestion, onCycleSavedQuery]);
 
   const handleFocus = () => {
     setShowSuggestions(true);
   };
 
   const handleBlur = () => {
-    setTimeout(() => {
+    // 🔥 Задержка перед закрытием, чтобы успел сработать клик по элементу
+    blurTimeoutRef.current = window.setTimeout(() => {
       setShowSuggestions(false);
       setActiveIndex(-1);
     }, 150);
@@ -263,30 +248,15 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
     setShowCycleIndicator(false);
   };
 
-  // Scroll active item into view
   useEffect(() => {
-    if (activeIndex >= 0 && suggestionItemRefs.current[activeIndex] && suggestionsListRef.current) {
-      const activeItem = suggestionItemRefs.current[activeIndex];
-      const list = suggestionsListRef.current;
-
-      if (activeItem && list) {
-        activeItem.scrollIntoView({
-          block: 'nearest',
-          behavior: 'auto'
-        });
-      }
+    if (activeIndex >= 0 && suggestionItemRefs.current[activeIndex]) {
+      suggestionItemRefs.current[activeIndex]?.scrollIntoView({ block: 'nearest' });
     }
   }, [activeIndex]);
 
   return (
-    <div
-      role="combobox"
-      aria-expanded={showSuggestions}
-      className={styles.inputWrapper}
-      style={{ width, minWidth }}
-    >
+    <div role="combobox" aria-expanded={showSuggestions} className={styles.inputWrapper} style={{ width, minWidth }}>
       <input
-        role="searchbox"
         ref={inputRef}
         className={styles.input}
         type="text"
@@ -297,31 +267,25 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
       />
-      {typeof resultsCount === 'number' && (
-        <div className={styles.resultsBadge}>
-          {resultsCount}
-        </div>
-      )}
+      {typeof resultsCount === 'number' && <div className={styles.resultsBadge}>{resultsCount}</div>}
+      
       {showSuggestions && suggestions.length > 0 && (
-        <ul
-          ref={suggestionsListRef}
-          role="listbox"
-          className={styles.suggestions}
-        >
+        <ul ref={suggestionsListRef} role="listbox" className={styles.suggestions}>
           {suggestions.map((item, idx) => (
             <li
-              key={`suggest_${idx}_${item}`}
-              ref={el => { suggestionItemRefs.current[idx] = el; }}
+              key={`${idx}_${item}`}
+              ref={el => suggestionItemRefs.current[idx] = el}
               className={idx === activeIndex ? styles.suggestionItemActive : styles.suggestionItem}
-              onMouseDown={() => applySuggestion(item)}
+              onMouseDown={(e) => { e.preventDefault(); applySuggestion(item); }}
             >
               {item}
             </li>
           ))}
         </ul>
       )}
+      
       {showCycleIndicator && savedQueryCycleIndex >= 0 && savedQueries[savedQueryCycleIndex] && (
-        <div className={styles.cycleIndicator} aria-live="polite">
+        <div className={styles.cycleIndicator}>
           📑 {savedQueries[savedQueryCycleIndex].name} ({savedQueryCycleIndex + 1}/{savedQueries.length})
         </div>
       )}
@@ -329,4 +293,4 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
   );
 };
 
-export default AutocompleteInput;
+export default React.memo(AutocompleteInput);

@@ -11,6 +11,7 @@
   justify-content: center;
   padding: 24px;
   box-sizing: border-box;
+  padding: 70px 0 10px 0; /* top right bottom left */
 }
 
 .closeContainer {
@@ -25,8 +26,11 @@
   flex-grow: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: hidden; /* ❗ Важно: обрезает вылезание контента */
   margin-bottom: 16px;
+  max-height: 700px;
+  /* ✅ Убеждаемся, что дети тоже могут скроллиться */
+  min-height: 0;
 }
 
 .modalFooter {
@@ -429,16 +433,23 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 
 .modalContainer {
   background-color: #ffffff;
-  border-radius: 8px; /* ✅ Скругляем только верхние углы контейнера */
+  border-radius: 8px;
+  /* ✅ Скругляем только верхние углы контейнера */
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   padding: 10px 38px 28px 32px;
+  max-height: 800px;
   max-width: 600px;
   width: 100%;
   box-sizing: border-box;
@@ -480,19 +491,22 @@
 /* ✅ По умолчанию: прозрачный фон, красный крестик */
 .resetButton .closeIcon {
   font-size: 16px;
-  font-weight: 600; /* 🔥 Потолще */
+  font-weight: 600;
+  /* 🔥 Потолще */
   line-height: 1;
-  color: #c41e3a; /* Красный крест */
+  color: #c41e3a;
+  /* Красный крест */
   transition: color 0.1s;
 }
 
 /* ✅ При наведении: красный фон, БЕЛЫЙ крестик */
 .resetButton:hover {
-  background-color:  #c41e3a;
+  background-color: #c41e3a;
 }
 
 .resetButton:hover .closeIcon {
-  color: #ffffff; /* Белый крест на красном фоне */
+  color: #ffffff;
+  /* Белый крест на красном фоне */
 }
 
 /* ✅ При нажатии: темнее красный */
@@ -525,4 +539,162 @@
   border: 1px dashed #9b59b6;
   margin-right: auto;
   align-self: center;
+}
+
+
+/*--------------------------------------------------------*/
+.togglePreviewBtn {
+  position: absolute;
+  top: 0;
+  right: 60px;
+  width: 60px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.1s;
+  z-index: 3;
+}
+
+.togglePreviewBtn .toggleIcon {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  font-family: monospace;
+  color: #39a2cf;
+  transition: color 0.1s;
+}
+
+.togglePreviewBtn:hover {
+  background-color: rgba(36, 132, 185, 0.8);
+  color: #ffffff;
+}
+
+.togglePreviewBtn:hover .toggleIcon {
+  color: #ffffff;
+  /* Белый крест на красном фоне */
+}
+
+/* ✅ При нажатии: темнее красный */
+.togglePreviewBtn:active {
+  background-color: rgba(36, 132, 185, 0.8);
+}
+
+.togglePreviewBtn:active .toggleIcon {
+  color: #ffffff;
+}
+
+
+
+.jsonPreviewPanel {
+  /* ✅ Занимает всё доступное место внутри flex-контейнера */
+  flex: 1;
+  min-height: 0; /* ❗ Важно: позволяет скроллу работать внутри flex-элемента */
+  
+  position: relative;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 16px;
+  
+  /* ✅ Скроллы всегда видны при переполнении */
+  overflow-x: auto;
+  overflow-y: auto;
+  
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  border: 1px solid #e0e0e0;
+  
+  /* ✅ Убираем конфликтующий max-height */
+  /* max-height: calc(90vh - 200px); ← УДАЛИТЬ */
+}
+
+.copyJsonBtn {
+  /* ✅ Абсолютное позиционирование — не влияет на поток текста */
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  
+  padding: 6px 14px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  color: #333333;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  
+  /* ✅ Чтобы кнопка не "наезжала" на текст визуально */
+  min-width: 110px;
+  text-align: center;
+}
+
+.copyJsonBtn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #ced4da;
+}
+
+.copyJsonBtn:active:not(:disabled) {
+  transform: scale(0.98);
+  background: #eeeeee;
+}
+
+.copyJsonBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.jsonPre {
+  margin: 0;
+  color: #6d6d6d;
+  font-size: 14px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  
+  /* ✅ Без переносов — горизонтальный скролл */
+  white-space: pre;
+  word-wrap: normal;
+  word-break: normal;
+  
+  /* ✅ Не создаёт своих скроллов */
+  overflow: visible;
+  display: block;
+  
+  /* ✅ Отступы, чтобы текст не заходил под кнопку и скроллбар */
+  padding-right: 130px;
+  padding-bottom: 12px;
+  
+  /* ✅ Гарантируем, что pre может расти по ширине */
+  min-width: 100%;
+}
+
+/* ✅ Скроллбары для панели (светлая тема) */
+.jsonPreviewPanel::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.jsonPreviewPanel::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.jsonPreviewPanel::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.jsonPreviewPanel::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* ✅ Для Firefox */
+.jsonPreviewPanel {
+  scrollbar-width: thin;
+  scrollbar-color: #c1c1c1 #f1f1f1;
 }
