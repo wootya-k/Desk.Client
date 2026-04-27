@@ -1,7 +1,8 @@
 .container {
   width: 100%;
   height: 100%;
-  overflow: visible; /* ❗ УБРАЛИ ВСЕ СКРОЛЛЫ ОТСЮДА */
+  overflow: visible;
+  /* ❗ УБРАЛИ ВСЕ СКРОЛЛЫ ОТСЮДА */
   padding: 1rem 0 0;
   z-index: 1;
   flex: 1;
@@ -12,118 +13,330 @@
   border-collapse: collapse;
   background-color: transparent;
   margin: 0;
-  width: max-content; /* 🔥 Таблица занимает столько, сколько нужно */
+  width: max-content;
+  /* 🔥 Таблица занимает столько, сколько нужно */
   min-width: 100%;
   display: table;
   position: relative;
 }
 
-.narrowTable { margin: 0 auto; width: auto; min-width: auto; max-width: none; }
+.narrowTable {
+  margin: 0 auto;
+  width: auto;
+  min-width: auto;
+  max-width: none;
+}
 
 .brokenRef {
-  color: hsl(0, 100%, 82%); font-style: italic; font-size: 11px;
-  display: inline-block; line-height: 1.4; cursor: pointer; user-select: none;
+  color: hsl(0, 100%, 82%);
+  font-style: italic;
+  font-size: 11px;
+  display: inline-block;
+  line-height: 1.4;
+  cursor: pointer;
+  user-select: none;
 }
-.brokenRef:hover { color: #ff0000; text-decoration: underline; }
+
+.brokenRef:hover {
+  color: #ff0000;
+  text-decoration: underline;
+}
 
 /* 🔝 ЗАГОЛОВКИ — липкие к верху */
+/* 🔝 ЗАГОЛОВКИ — липкие к верху */
 .headerCell {
-  font-weight: 600; padding: 16px 12px; color: #2c3e50; font-size: 12px;
-  border-bottom: 2px solid #e0e0e0; cursor: pointer; user-select: none;
-  white-space: nowrap; background-color: #fafafa; /* 🔥 Обязательно: непрозрачный фон */
-  min-width: 130px; max-width: 250px; height: 48px; box-sizing: border-box;
+  font-weight: 600;
+  padding: 16px 12px;
+  color: #2c3e50;
+  font-size: 12px;
+  border-bottom: 2px solid #e0e0e0; /* Граница снизу */
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  
+  /* 🔥 ОБЯЗАТЕЛЬНО: Непрозрачный фон, чтобы строки не просвечивали */
+  background-color: #fafafa !important; 
+  
+  min-width: 130px;
+  max-width: 250px;
+  height: 48px;
+  box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  letter-spacing: 0.3px; text-transform: uppercase; transition: background-color 0.2s ease;
-  position: sticky; top: 0; z-index: 30; /* 🔥 Sticky + z-index */
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease;
+  
+  /* 🔥 МАГИЯ STICKY */
+  position: sticky;
+  top: 0;        /* Прилипает к самому верху контейнера */
+  z-index: 30;   /* Поверх строк */
 }
-.headerCell:hover { background-color: #f0f0f0; z-index: 35; }
 
-.centeredHeader { text-align: center; }
-.leftAlignedHeader { text-align: left; }
-
-/* 🔝➡️ ЗАГОЛОВОК "ДЕЙСТВИЯ" — липкий к верху и к правому краю */
+/* Для колонки "Действия" */
 .actionsHeader {
-  position: sticky; top: 0; right: 0; z-index: 40;
-  background-color: #fafafa !important; min-width: 120px; max-width: none;
-  border-bottom: 2px solid #e0e0e0; border-left: 1px solid #e0e0e0;
-  box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.03); cursor: default;
+  position: sticky;
+  top: 0;      /* Тоже прилипает к верху */
+  right: 0;    /* И к правому краю */
+  z-index: 40; /* Выше всех остальных */
+  background-color: #fafafa !important;
+  border-bottom: 2px solid #e0e0e0;
 }
-.actionsHeader:hover { background-color: #f0f0f0 !important; z-index: 45; }
+
+/* При наведении */
+.headerCell:hover, .actionsHeader:hover {
+  background-color: #f0f0f0 !important;
+}
+.headerCell:hover {
+  background-color: #f0f0f0;
+  z-index: 35;
+}
+
+.centeredHeader {
+  text-align: center;
+}
+
+.leftAlignedHeader {
+  text-align: left;
+}
+
+.actionsHeader:hover {
+  background-color: #f0f0f0 !important;
+  z-index: 45;
+}
 
 .row {
-  background-color: #fff; border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.1s ease; height: 52px;
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.1s ease;
+  height: 52px;
 }
-.row:hover { background-color: #f8f9fa; }
+
+.row:hover {
+  background-color: #f8f9fa;
+}
 
 .cell {
-  padding: 12px; font-size: 14px; color: #374151; background-color: inherit;
-  min-width: 130px; max-width: 220px; height: 52px; overflow: hidden;
-  position: relative; cursor: default; box-sizing: border-box;
+  padding: 12px;
+  font-size: 14px;
+  color: #374151;
+  background-color: inherit;
+  min-width: 130px;
+  max-width: 220px;
+  height: 52px;
+  overflow: hidden;
+  position: relative;
+  cursor: default;
+  box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  border-bottom: 1px solid #f5f5f5; transition: background-color 0.1s ease;
-  white-space: nowrap; text-overflow: ellipsis;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background-color 0.1s ease;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.emptyCell { color: #b0b6c2; font-style: italic; font-size: 11px; display: inline-block; line-height: 1.4; }
-.row:hover .emptyCell { color: #868e9c; }
+.emptyCell {
+  color: #b0b6c2;
+  font-style: italic;
+  font-size: 11px;
+  display: inline-block;
+  line-height: 1.4;
+}
 
-.centeredCell { text-align: center; }
-.leftAlignedCell { text-align: left; }
+.row:hover .emptyCell {
+  color: #868e9c;
+}
 
-.columnHovered { background-color: rgba(0, 0, 0, 0.02) !important; border-right-color: transparent !important; }
-.row:hover .columnHovered { background-color: rgba(0, 0, 0, 0.04) !important; border-right-color: transparent !important; }
+.centeredCell {
+  text-align: center;
+}
 
-.centeredContent { display: flex; justify-content: center; align-items: center; width: 100%; }
-.leftAlignedContent { display: flex; justify-content: flex-start; align-items: center; width: 100%; }
+.leftAlignedCell {
+  text-align: left;
+}
 
-.actionsContainer { display: flex; gap: 8px; justify-content: center; align-items: center; padding: 0 8px; }
+.columnHovered {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+  border-right-color: transparent !important;
+}
+
+.row:hover .columnHovered {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  border-right-color: transparent !important;
+}
+
+.centeredContent {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.leftAlignedContent {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+}
+
+.actionsContainer {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 0 8px;
+}
 
 /* 🔗 КОЛОНКА "ДЕЙСТВИЯ" — липкая к правому краю */
 .actionsCell {
-  position: sticky; right: 0; z-index: 20; background-color: #fff;
-  padding: 0 !important; min-width: 120px; max-width: none; height: 52px;
-  border-left: 1px solid #f0f0f0; border-bottom: 1px solid #f5f5f5;
+  position: sticky;
+  right: 0;
+  z-index: 20;
+  background-color: #fff;
+  padding: 0 !important;
+  min-width: 120px;
+  max-width: none;
+  height: 52px;
+  border-left: 1px solid #f0f0f0;
+  border-bottom: 1px solid #f5f5f5;
 }
-.row:hover .actionsCell { background-color: #f8f9fa; }
 
-.sortIndicator { margin-left: 4px; font-size: 10px; display: inline-block; color: #666; }
-
-.booleanContainer { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; }
-.booleanTrue, .booleanFalse {
-  display: flex; justify-content: center; align-items: center;
-  width: 24px; height: 24px; border-radius: 2px; font-weight: 500; font-size: 12px; border: 1px solid;
+.row:hover .actionsCell {
+  background-color: #f8f9fa;
 }
-.booleanTrue { color: #065f46; background-color: #d1fae5; border-color: #a7f3d0; }
-.booleanFalse { color: #991b1b; background-color: #fee2e2; border-color: #fecaca; }
+
+.sortIndicator {
+  margin-left: 4px;
+  font-size: 10px;
+  display: inline-block;
+  color: #666;
+}
+
+.booleanContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.booleanTrue,
+.booleanFalse {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 2px;
+  font-weight: 500;
+  font-size: 12px;
+  border: 1px solid;
+}
+
+.booleanTrue {
+  color: #065f46;
+  background-color: #d1fae5;
+  border-color: #a7f3d0;
+}
+
+.booleanFalse {
+  color: #991b1b;
+  background-color: #fee2e2;
+  border-color: #fecaca;
+}
 
 .columnResizer {
-  position: absolute; top: 0; right: 0; width: 4px; height: 100%;
-  cursor: col-resize; background: transparent; transition: background-color 0.2s ease; z-index: 1;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  background: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 1;
 }
-.columnResizer:hover { background-color: #667eea; }
-.headerCell:hover .columnResizer { background-color: #e0e0e0; }
+
+.columnResizer:hover {
+  background-color: #667eea;
+}
+
+.headerCell:hover .columnResizer {
+  background-color: #e0e0e0;
+}
 
 .tooltip {
-  position: fixed; background: #1f2937; color: white; padding: 12px 16px; border-radius: 6px;
-  font-size: 14px; z-index: 1000; pointer-events: none; max-width: 600px; max-height: 400px;
-  overflow: auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  border: 1px solid #374151; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  word-wrap: break-word; white-space: normal; line-height: 1.4;
+  position: fixed;
+  background: #1f2937;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  z-index: 1000;
+  pointer-events: none;
+  max-width: 600px;
+  max-height: 400px;
+  overflow: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border: 1px solid #374151;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.4;
 }
-.tooltip::-webkit-scrollbar { width: 6px; }
-.tooltip::-webkit-scrollbar-track { background: #374151; border-radius: 3px; }
-.tooltip::-webkit-scrollbar-thumb { background: #6b7280; border-radius: 3px; }
-.tooltip::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+.tooltip::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tooltip::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 3px;
+}
+
+.tooltip::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 3px;
+}
+
+.tooltip::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
 
 @media (max-width: 768px) {
-  .container { padding: 0.5rem 0 0; }
-  .narrowTable { margin: 0 auto; }
-  .cell { padding: 10px 8px; min-width: 100px; max-width: 200px; }
-  .headerCell { padding: 14px 10px; font-size: 11px; min-width: 100px; }
-  .actionsCell { min-width: 100px; }
-  .actionsContainer { gap: 6px; padding: 0 6px; }
+  .container {
+    padding: 0.5rem 0 0;
+  }
+
+  .narrowTable {
+    margin: 0 auto;
+  }
+
+  .cell {
+    padding: 10px 8px;
+    min-width: 100px;
+    max-width: 200px;
+  }
+
+  .headerCell {
+    padding: 14px 10px;
+    font-size: 11px;
+    min-width: 100px;
+  }
+
+  .actionsCell {
+    min-width: 100px;
+  }
+
+  .actionsContainer {
+    gap: 6px;
+    padding: 0 6px;
+  }
 }
 
-.narrowTable { border: 1px solid #e5e5e5; }
-.wideTable .cell { border-right: 1px solid #f5f5f5; }
+.narrowTable {
+  border: 1px solid #e5e5e5;
+}
+
+.wideTable .cell {
+  border-right: 1px solid #f5f5f5;
+}

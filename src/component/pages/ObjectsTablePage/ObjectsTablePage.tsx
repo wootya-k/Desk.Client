@@ -377,7 +377,33 @@ const ObjectsTablePage: React.FC = () => {
 
   const isEmptyState = !isLoading && !error && filteredRows.length === 0;
   const isEmptyDueToSearch = isEmptyState && searchTerm.trim() !== '';
+useEffect(() => {
+  const tableContainer = tableContainerRef.current;
+  if (!tableContainer) return;
 
+  const updateStickyTop = () => {
+    const toolbar = document.querySelector('.toolbarWrapper');
+    if (!toolbar) return;
+    
+    const toolbarRect = toolbar.getBoundingClientRect();
+    const containerRect = tableContainer.getBoundingClientRect();
+    const topOffset = toolbarRect.bottom - containerRect.top;
+    
+    const headerCells = tableContainer.querySelectorAll(`.${styles.headerCell}`);
+    headerCells.forEach(cell => {
+      (cell as HTMLElement).style.top = `${Math.max(0, topOffset)}px`;
+    });
+  };
+
+  updateStickyTop();
+  window.addEventListener('resize', updateStickyTop);
+  window.addEventListener('scroll', updateStickyTop, true);
+  
+  return () => {
+    window.removeEventListener('resize', updateStickyTop);
+    window.removeEventListener('scroll', updateStickyTop, true);
+  };
+}, []);
   return (
     <div className={styles.pageContainer}>
       <div className={styles.toolbarWrapper}>

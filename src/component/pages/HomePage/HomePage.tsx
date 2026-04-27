@@ -80,7 +80,7 @@ const PANEL_DIMENSIONS: PanelDimensions = {
 
 const HomePage: React.FC = () => {
   const [isStatsModalOpen, setIsStatsModalOpen] = useState(false);
-const [statsType, setStatsType] = useState<string>('employee');
+  const [statsType, setStatsType] = useState<string>('employee');
 
   const [objectTypes, setObjectTypes] = useState<ObjectType[]>([]);
   const [isEdictModalOpen, setIsEdictModalOpen] = useState(false);
@@ -964,16 +964,7 @@ const [statsType, setStatsType] = useState<string>('employee');
           Печать
         </FilledColorButton>
 
-        <FilledColorButton
-          onClick={() => {
-            setStatsType('employee');
-            setIsStatsModalOpen(true);
-          }}
-          disabled={!isAdminOrMaster}
-          width="100px"
-        >
-          Статистика
-        </FilledColorButton>
+
 
         <FilledColorButton
           onClick={() => setIsEdictModalOpen(true)}
@@ -984,11 +975,22 @@ const [statsType, setStatsType] = useState<string>('employee');
         </FilledColorButton>
 
         <FilledColorButton
-          onClick={() => { }}
+          onClick={() => {
+            setStatsType('employee');
+            setIsStatsModalOpen(true);
+          }}
           disabled={!isAdminOrMaster}
           width="100px"
         >
-          События
+          Статистика
+        </FilledColorButton>
+        
+        <FilledColorButton
+          onClick={() => navigate(`/checkpoint`)}
+          disabled={!isAdminOrMaster}
+          width="100px"
+        >
+          Сведения
         </FilledColorButton>
 
         {selectedTypes.size > 0 && (

@@ -1,13 +1,11 @@
 .pageContainer {
   min-height: 100vh;
+  background: linear-gradient(180deg, #fafafa 0%, #f5f7fa 100%);
   display: flex;
   flex-direction: column;
-  background: linear-gradient(180deg, #fafafa 0%, #f5f7fa 100%);
-  overflow: hidden;
   position: relative;
 }
 
-/* 🔝 ФИКСИРОВАННАЯ ШАПКА ПРИЛОЖЕНИЯ */
 .toolbarWrapper {
   position: fixed;
   top: 0;
@@ -16,31 +14,33 @@
   z-index: 1000;
   background: linear-gradient(180deg, #fafafa 0%, #f5f7fa 100%);
   margin-top: 60px;
+  flex-shrink: 0; /* ✅ Не сжимается */
 }
 
-/* 📦 КОНТЕНТ — с отступом под шапку и под нижний скролл */
 .contentLayout {
-  margin-bottom: 16px;
+  margin-top: 55px;
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
   box-sizing: border-box;
-  margin-top: 57px;
+  /* Убедитесь что нет фона здесь или он прозрачный */
 }
 
-/* 📊 КОНТЕЙНЕР ТАБЛИЦЫ — только вертикальный скролл */
+
 .tableScrollContainer {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden; /* ❗ Горизонтальный скролл ТОЛЬКО через fixedHorizontalScroll */
+  overflow-x: auto;
   border-radius: 8px;
-  background: #fff;
+  background: transparent;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   position: relative;
+  min-height: 0;
+  /* padding убран полностью */
+  box-sizing: border-box;
 }
-
 .tableScrollContainer::-webkit-scrollbar {
   width: 10px;
 }
@@ -162,6 +162,10 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 }
+
+.toast.success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+.toast.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
 .emptyTitle { font-size: 20px; font-weight: 600; color: #2d3748; margin: 8px 0 4px; }
 .emptyDescription { color: #718096; font-size: 14px; max-width: 320px; line-height: 1.5; margin: 0; }
 
@@ -171,33 +175,4 @@
   border-radius: 8px; font-size: 14px; font-weight: 500; z-index: 10001;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); animation: slideDown 0.3s ease-out;
   max-width: 90%; width: auto;
-}
-@keyframes slideDown {
-  from { transform: translate(-50%, -100%); opacity: 0; }
-  to { transform: translate(-50%, 0); opacity: 1; }
-}
-.toast.success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-.toast.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-.toastIcon { font-size: 18px; font-weight: bold; flex-shrink: 0; }
-.toastMessage { flex: 1; word-break: break-word; }
-.toastClose {
-  background: none; border: none; font-size: 20px; cursor: pointer; padding: 0;
-  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
-  border-radius: 4px; transition: background-color 0.2s; flex-shrink: 0; opacity: 0.6;
-}
-.toastClose:hover { background: rgba(0, 0, 0, 0.1); opacity: 1; }
-
-.brokenRef {
-  color: hsl(0, 100%, 82%); font-style: italic; font-size: 11px;
-  display: inline-block; line-height: 1.4; cursor: pointer; user-select: none;
-}
-.brokenRef:hover { color: #ff0000; text-decoration: underline; }
-
-@media (max-width: 768px) {
-  .contentLayout { margin-top: 84px; padding: 0 12px 12px; }
-  .emptyState { margin: 12px; min-height: 300px; }
-  .emptyIcon { font-size: 48px; }
-  .emptyTitle { font-size: 18px; }
-  .emptyDescription { font-size: 13px; max-width: 280px; }
-  .statusSelect { min-width: 120px; font-size: 13px; padding: 7px 10px; }
 }

@@ -42,6 +42,7 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
     return alignment;
   }, [visibleColumns, rows, isNarrowTable]);
 
+  
   const getColumnWidth = (accessor: string): number => columnWidths[accessor] || (isNarrowTable ? 200 : 130);
 
   const handleResizeStart = (accessor: string, e: React.MouseEvent) => {
@@ -117,26 +118,34 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
   const renderActionButton = (row: Row) => row.status === true ? <DeleteButton onClick={() => onDelete(row.id, row)} size={38} width='1px' /> : <RestoreButton onClick={() => onRestore(row.id)} size={30} width='1px' />;
 
   return (
-    <>
-      <section className={styles.container}>
-        <table className={`${styles.table} ${isNarrowTable ? styles.narrowTable : styles.wideTable}`} ref={tableRef}>
-          <thead>
-            <tr>
-              {visibleColumns.map(column => {
-                const width = getColumnWidth(column.accessor);
-                const alignment = columnAlignment[column.accessor];
-                return (
-                  <th key={column.accessor} className={`${styles.headerCell} ${hoveredColumn === column.accessor ? styles.columnHovered : ''} ${alignment === 'center' ? styles.centeredHeader : styles.leftAlignedHeader}`} style={{ width: `${width}px` }} onMouseEnter={() => setHoveredColumn(column.accessor)} onMouseLeave={() => setHoveredColumn(null)} onClick={() => onSort(column.accessor)}>
-                    <div className={alignment === 'center' ? styles.centeredContent : styles.leftAlignedContent}>
-                      {column.title}<span className={styles.sortIndicator}>{getSortIndicator(column.accessor)}</span>
-                    </div>
-                    <div className={styles.columnResizer} onMouseDown={(e) => handleResizeStart(column.accessor, e)} />
-                  </th>
-                );
-              })}
-              <th className={`${styles.actionsHeader} ${styles.headerCell}`}><div className={styles.centeredContent}>Действия</div></th>
-            </tr>
-          </thead>
+  <>
+    <section className={styles.container}>
+      <table className={`${styles.table} ${isNarrowTable ? styles.narrowTable : styles.wideTable}`} ref={tableRef}>
+        <thead>
+          <tr>
+            {visibleColumns.map(column => {
+              const width = getColumnWidth(column.accessor);
+              const alignment = columnAlignment[column.accessor];
+              return (
+                <th 
+                  key={column.accessor} 
+                  className={`${styles.headerCell} ${styles[alignment === 'center' ? 'centeredHeader' : 'leftAlignedHeader']}`} 
+                  style={{ width: `${width}px` }}
+                  onClick={() => onSort(column.accessor)}
+                >
+                  <div className={alignment === 'center' ? styles.centeredContent : styles.leftAlignedContent}>
+                    {column.title}
+                    <span className={styles.sortIndicator}>{getSortIndicator(column.accessor)}</span>
+                  </div>
+                  <div className={styles.columnResizer} onMouseDown={(e) => handleResizeStart(column.accessor, e)} />
+                </th>
+              );
+            })}
+            <th className={`${styles.actionsHeader} ${styles.headerCell}`}>
+              <div className={styles.centeredContent}>Действия</div>
+            </th>
+          </tr>
+        </thead>
           <tbody>
             {rows.map((row: Row) => (
               <tr key={row.id} className={styles.row}>

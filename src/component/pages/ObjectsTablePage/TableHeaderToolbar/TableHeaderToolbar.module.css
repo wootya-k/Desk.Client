@@ -46,18 +46,17 @@
   height: 22px;
   padding: 0 8px;
 
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 10px;
   font-weight: 600;
   border-radius: 15px;
+  background: rgba(22, 26, 32, 0.6); /* ← полупрозрачный (0.7 вместо 1.0) */
+  backdrop-filter: blur(4px); /* ← размытие фона */
 
   pointer-events: none;
   user-select: none;
 }
 
-/* ========================================
-   ПОДСКАЗКА ВНИЗУ (твой стиль)
-   ======================================== */
 .shortcutHint {
   display: flex;
   flex-direction: column;
@@ -70,9 +69,9 @@
   left: 50%;
   transform: translateX(-50%);
 
-  color: white;
+  color: rgba(255, 255, 255, 0.95);
   padding: 12px 16px;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
 
   z-index: 1000;
@@ -80,8 +79,8 @@
   max-width: 420px;
 
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  border: 1px solid #374151;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  background: rgba(18, 17, 24, 0.7);
+  backdrop-filter: blur(8px);
 
   word-wrap: break-word;
   white-space: normal;

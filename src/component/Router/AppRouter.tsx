@@ -11,6 +11,7 @@ import MainLayout from 'component/layout/MainLayout/MainLayout';
 import SchemaEditorPage from '@pages/SchemaEditorPage/SchemaEditorPage';
 import ReportTemplateEditorPage from '@pages/ReportsEditorPage/ReportTemplateEditorPage';
 import CorporationStatsPage from '@pages/CorporationStatsPage/CorporationStatsPage';
+import CheckpointPage from '@pages/CheckpointPage/CheckpointPage';
 
 const router = createBrowserRouter(
   [
@@ -61,6 +62,10 @@ const router = createBrowserRouter(
         {
           path: '/user-profile',
           element: <UserProfilePage />,
+        },
+        {
+          path: '/checkpoint',
+          element: <CheckpointPage />,
         },
       ],
     }
