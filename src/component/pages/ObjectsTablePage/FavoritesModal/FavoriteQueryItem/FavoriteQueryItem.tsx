@@ -74,7 +74,7 @@ const FavoriteQueryItem: React.FC<FavoriteQueryItemProps> = ({
             </div>
             <div className={styles.editActions}>
               <button onClick={handleSave} className={styles.saveButton} disabled={!localName.trim() || !localBody.trim()}>✓</button>
-              <button onClick={handleCancel} className={styles.cancelButton}>✕</button>
+              <button onClick={handleCancel} className={`${styles.actionButton} ${styles.deleteButton}`}>✕</button>
             </div>
           </div>
           <div className={styles.formField}>
@@ -144,7 +144,7 @@ const FavoriteQueryItem: React.FC<FavoriteQueryItemProps> = ({
               title="Удалить"
               type="button"
             >
-              ×
+              ✕
             </button>
           </div>
         </div>

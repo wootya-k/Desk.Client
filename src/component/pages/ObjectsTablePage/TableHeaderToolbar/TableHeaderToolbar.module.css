@@ -497,87 +497,154 @@
   }
 }
 
-/* === ПАГИНАЦИЯ === */
-.paginationWrapper {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  padding: 12px 0 8px;
-  margin-top: 4px;
-  border-top: 1px solid #f0f0f0;
-}
-
 .paginationContainer {
   display: flex;
   align-items: center;
-  gap: 7px;
+  padding-left: 30px;
 }
 
-.paginationButton {
-  width: 30px;
-  height: 30px;
-  padding: 14px 0px 15px 0px;
-  border: 1px solid #ddd;
-  background: #ffffff;
-  border-radius: 30px;
+.paginate {
+  position: relative;
+  width: 20px;    
   cursor: pointer;
-  font-size: 15px;
-  font-weight: 500;
-  color: #333;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  transform: translate3d(0, 0, 0);
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.15)); /* тень тоже уменьшили */
+  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.paginate i {
+  position: absolute;
+  top: 40%;
+  left: 0;
+  width: 20px;        /* было 50px → 20px */
+  height: 2px;        /* было 5px → 2px */
+  border-radius: 1px; /* было 2.5px → 1px */
+  background: #555;
   transition: all 0.15s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
+  transform-origin: 50% 50%;
 }
 
-.paginationButton:hover:not(:disabled) {
-  background: #3498db;
-  color: #ffffff;
-  border-color: #3498db;
+/* === ЛЕВАЯ СТРЕЛКА === */
+.paginate.left i {
+  transform-origin: 0% 50%;
 }
 
-.paginationButton:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  background: #f9f9f9;
+.paginate.left i:first-child {
+  transform: translate(0, -0.5px) rotate(40deg);
 }
 
-.paginationInfo {
+.paginate.left i:last-child {
+  transform: translate(0, -0.5px) rotate(-40deg);
+}
+
+.paginate.left:hover:not(:disabled) i:first-child {
+  transform: translate(0, -0.5px) rotate(30deg);
+}
+
+.paginate.left:hover:not(:disabled) i:last-child {
+  transform: translate(0, -0.5px) rotate(-30deg);
+}
+
+.paginate.left:active:not(:disabled) i:first-child {
+  transform: translate(0.5px, -0.5px) rotate(25deg);
+}
+
+.paginate.left:active:not(:disabled) i:last-child {
+  transform: translate(0.5px, -0.5px) rotate(-25deg);
+}
+
+/* === ПРАВАЯ СТРЕЛКА === */
+.paginate.right i {
+  transform-origin: 100% 50%;
+}
+
+.paginate.right i:first-child {
+  transform: translate(0, 0.5px) rotate(40deg);
+}
+
+.paginate.right i:last-child {
+  transform: translate(0, 0.5px) rotate(-40deg);
+}
+
+.paginate.right:hover:not(:disabled) i:first-child {
+  transform: translate(0, 0.5px) rotate(30deg);
+}
+
+.paginate.right:hover:not(:disabled) i:last-child {
+  transform: translate(0, 0.5px) rotate(-30deg);
+}
+
+.paginate.right:active:not(:disabled) i:first-child {
+  transform: translate(0.5px, 0.5px) rotate(25deg);
+}
+
+.paginate.right:active:not(:disabled) i:last-child {
+  transform: translate(0.5px, 0.5px) rotate(-25deg);
+}
+
+/* === ОТКЛЮЧЕННОЕ СОСТОЯНИЕ === */
+.paginate:disabled {
+  opacity: 0.3;
+  cursor: default;
+  filter: none;
+}
+
+.paginate:disabled i {
+  transition: none;
+}
+
+.paginate.left:disabled i:first-child,
+.paginate.left:disabled i:last-child {
+  transform: translate(-3px, 0) rotate(0deg); /* уменьшили сдвиг */
+}
+
+.paginate.right:disabled i:first-child,
+.paginate.right:disabled i:last-child {
+  transform: translate(3px, 0) rotate(0deg);
+}
+
+/* === СЧЁТЧИК СТРАНИЦ === */
+.counter {
+  text-align: center;
+  font-size: 20px;      /* было 30px → 12px */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
   color: #555;
-  font-size: 13px;
   font-weight: 500;
-  white-space: nowrap;
+  min-width: 50px;      /* было 80px → 50px */
+  user-select: none;
+  line-height: 1;
 }
 
-.paginationCount {
-  color: #888;
-  font-weight: 400;
-}
-
-/* Адаптивность */
-@media (max-width: 768px) {
-  .paginationWrapper {
-    padding: 8px 0 4px;
-  }
-
-  .paginationContainer {
-    gap: 8px;
-  }
-
-  .paginationButton {
-    min-width: 28px;
-    height: 28px;
-    font-size: 14px;
-  }
-
-  .paginationInfo {
-    font-size: 12px;
-  }
-}
-
+/* === АДАПТИВНОСТЬ (уже компактно, но оставим для совсем мелких экранов) === */
 @media (max-width: 450px) {
-  .paginationCount {
-    display: none;
+  .counter {
+    font-size: 11px;
+    min-width: 40px;
   }
+  
+  .paginate {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .paginate i {
+    width: 18px;
+    height: 2px;
+  }
+}
+
+.paginate::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  right: -8px;
+  bottom: -8px;
+  /* прозрачная область вокруг кнопки */
 }

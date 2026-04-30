@@ -392,29 +392,29 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
           {renderShortcutBadge(objectType ? 7 : 6, toolbarMeta[objectType ? 7 : 6])}
         </div>
 
-        {/* ✅ Пагинация — показываем только если включена и есть больше 1 страницы */}
+        {/* ✅ Пагинация — стильные стрелки */}
         {paginationEnabled && totalPages > 1 && onPageChange && (
           <div className={styles.paginationContainer}>
             <button
               onClick={() => onPageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
-              className={styles.paginationButton}
+              className={`${styles.paginate} ${styles.left}`}
               aria-label="Предыдущая страница"
               type="button"
             >
-              ←
+              <i></i><i></i>
             </button>
-            <span className={styles.paginationInfo}>
+            <span className={styles.counter}>
               {currentPage}/{totalPages}
             </span>
             <button
               onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
-              className={styles.paginationButton}
+              className={`${styles.paginate} ${styles.right}`}
               aria-label="Следующая страница"
               type="button"
             >
-              →
+              <i></i><i></i>
             </button>
           </div>
         )}

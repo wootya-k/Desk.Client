@@ -186,14 +186,13 @@
 
 .saveButton,
 .cancelButton {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 4px;
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -201,12 +200,14 @@
 }
 
 .saveButton {
-  background: #27ae60;
-  color: white;
+      border: 1px solid #ddd;
+  background: white;
+  color: #27ae60;
 }
 
 .saveButton:hover:not(:disabled) {
   background: #229954;
+  color:  white;
 }
 
 .saveButton:disabled {
