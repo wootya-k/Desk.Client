@@ -1,6 +1,7 @@
 import { buildUrl } from 'config';
 
 export interface EmployeeChange {
+  changeId: string; 
   militaryCategory: string;
   sequenceNumber: number;
   fullName: string;
@@ -78,4 +79,21 @@ export const downloadFile = (blob: Blob, fileName: string) => {
   link.click();
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
+};
+
+export const deleteEmployeeChange = async (changeId: string): Promise<void> => {
+  const url = await buildUrl(`/api/EmployeeChangesCheckpoint/${changeId}`);
+  
+  const response = await fetch(url, {
+    method: 'DELETE',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Запись не найдена');
+    }
+    const errorText = await response.text().catch(() => response.statusText);
+    throw new Error(`Ошибка удаления: ${errorText}`);
+  }
 };

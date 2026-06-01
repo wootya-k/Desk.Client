@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  getEmployeeChanges, 
-  exportEmployeeChanges, 
+import {
+  getEmployeeChanges,
+  exportEmployeeChanges,
   downloadFile,
-  EmployeeChange 
+  deleteEmployeeChange,
+  EmployeeChange
 } from '@services/CheckpointService';
 import styles from './CheckpointPage.module.css';
 import FilledColorButton from '@commons/FilledColorButton/FilledColorButton';
@@ -63,24 +64,29 @@ const CheckpointPage = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
-  setChanges(prev => prev.filter(c => c.sequenceNumber !== id));
-};
+  const handleDelete = async (changeId: string) => {
+    try {
+      // 1. Удаляем на бэкенде
+      await deleteEmployeeChange(changeId);
 
-  // Группировка — исправлено: сравнение без учёта регистра и только по текстовой части
-const grouped = CATEGORIES.reduce((acc, cat) => {
-  // Извлекаем текстовую часть категории: "1. Подлежат призыву" → "подлежат призыву"
-  const catLabel = cat.replace(/^\d+\.\s*/, '').toLowerCase();
-  
-  acc[cat] = changes.filter(c => {
-    const itemLabel = c.militaryCategory.toLowerCase();
-    // Проверяем, содержит ли категория из API нужную метку
-    return itemLabel.includes(catLabel);
-  });
-  return acc;
-}, {} as Record<CategoryKey, EmployeeChange[]>);
+      // 2. Удаляем из локального стейта
+      setChanges(prev => prev.filter(c => c.changeId !== changeId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка удаления записи');
+    }
+  };
 
-  const formatDate = (d: string) => 
+  const grouped = CATEGORIES.reduce((acc, cat) => {
+    const catLabel = cat.replace(/^\d+\.\s*/, '').toLowerCase();
+
+    acc[cat] = changes.filter(c => {
+      const itemLabel = c.militaryCategory.toLowerCase();
+      return itemLabel.includes(catLabel);
+    });
+    return acc;
+  }, {} as Record<CategoryKey, EmployeeChange[]>);
+
+  const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
@@ -157,7 +163,7 @@ const grouped = CATEGORIES.reduce((acc, cat) => {
                   grouped[cat].map(c => {
                     const same = c.registrationAddress === c.residenceAddress;
                     return (
-                      <tr key={c.sequenceNumber} className={styles.dataRow}>
+                      <tr key={c.changeId} className={styles.dataRow}> 
                         <td>{c.sequenceNumber}</td>
                         <td>{c.fullName}</td>
                         <td>{c.yearOfBirth}</td>
@@ -172,7 +178,7 @@ const grouped = CATEGORIES.reduce((acc, cat) => {
                         <td>{c.changeDescription}</td>
                         <td>
                           <button
-                            onClick={() => handleDelete(c.sequenceNumber)}
+                            onClick={() => handleDelete(c.changeId)}  // ← передаём UUID
                             className={`${styles.actionButton} ${styles.deleteButton}`}
                             title="Удалить"
                             type="button"
