@@ -15,6 +15,7 @@ export interface UserDto {
   lastName: string;
   patronymic: string;
   position: string;
+  positionPreview: string;
   role: string;
 }
 

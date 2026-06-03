@@ -19,7 +19,7 @@ export const getEmployeeChanges = async (
   dateTo?: Date,
   normalizeDays: number = 60
 ): Promise<EmployeeChange[]> => {
-  const baseUrl = await buildUrl('/api/EmployeeChangesCheckpoint/json');
+  const baseUrl = await buildUrl('/api/checkpoint/json');
   const url = new URL(baseUrl);
 
   // Если даты не переданы — бэкенд сам возьмёт последние normalizeDays дней
@@ -49,7 +49,7 @@ export const exportEmployeeChanges = async (
   format: 'xlsx' | 'xls' | 'ods' = 'xlsx',
   normalizeDays: number = 60
 ): Promise<Blob> => {
-  const baseUrl = await buildUrl('/api/EmployeeChangesCheckpoint/export');
+  const baseUrl = await buildUrl('/api/checkpoint/export');
   const url = new URL(baseUrl);
 
   url.searchParams.append('dateFrom', dateFrom.toISOString());
@@ -82,7 +82,7 @@ export const downloadFile = (blob: Blob, fileName: string) => {
 };
 
 export const deleteEmployeeChange = async (changeId: string): Promise<void> => {
-  const url = await buildUrl(`/api/EmployeeChangesCheckpoint/${changeId}`);
+  const url = await buildUrl(`/api/checkpoint/${changeId}`);
   
   const response = await fetch(url, {
     method: 'DELETE',

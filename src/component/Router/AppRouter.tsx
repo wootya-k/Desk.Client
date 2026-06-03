@@ -4,6 +4,8 @@ import ObjectsTablePage from '@pages/ObjectsTablePage/ObjectsTablePage';
 import DetailPage from '@pages/DetailPage/DetailPage';
 import NotFoundPage from '@pages/NotFoundPage/NotFoundPage';
 import HomePage from '@pages/HomePage/HomePage';
+import ImportPage from '@pages/ImportPage/ImportPage';
+import AdminPage from '@pages/AdminPage/AdminPage';
 import LoginPage from '@pages/LoginPage/LoginPage';
 import UserProfilePage from '@pages/UserProfilePage/UserProfilePage';
 import AuthLayout from 'component/layout/AuthLayout/AuthLayout';
@@ -34,6 +36,14 @@ const router = createBrowserRouter(
         {
           path: '/',
           element: <HomePage />,
+        },
+        {
+          path: '/import',
+          element: <ImportPage/>,
+        },
+        {
+          path: '/admin',
+          element: <AdminPage/>,
         },
         {
           path: '/report-template-editor/:templateId?',

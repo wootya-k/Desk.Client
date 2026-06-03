@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback, forwardRef, useImperat
 import { ObjectType } from '@models';
 import panelStyles from './DraggableCategoryPanel.module.css';
 import { setExpiringItem, getExpiringItem } from 'utils/LocalStorageUtils';
+import ContextMenu from '@commons/ContextMenu/ContextMenu';
 
 interface DraggableCategoryPanelProps {
     category: string;
@@ -22,6 +23,13 @@ interface DraggableCategoryPanelProps {
     selectedTypes: Set<string>;
     color?: string;
     containerRef: React.RefObject<HTMLDivElement>;
+}
+
+interface ContextMenuState {
+    x: number;
+    y: number;
+    typeId: string;
+    index: number;
 }
 
 const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanelProps>(({
@@ -48,6 +56,7 @@ const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanel
     const [resizeStart, setResizeStart] = useState({ y: 0, panelHeight: 0 });
     const [listMaxHeight, setListMaxHeight] = useState<number | null>(null);
     const [isAtBoundary, setIsAtBoundary] = useState({ top: false, bottom: false, left: false, right: false });
+    const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
     const internalPanelRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLUListElement>(null);
@@ -63,7 +72,6 @@ const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanel
     const cookieKeyHeight = `categoryPanelHeight_${category}`;
     const maxContentHeight = types.length * ITEM_HEIGHT;
 
-    // Экспортируем ref наружу через useImperativeHandle
     useImperativeHandle(ref, () => {
         if (internalPanelRef.current) {
             return internalPanelRef.current;
@@ -250,6 +258,52 @@ const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanel
         };
     }, [isResizing, handleResizeMove]);
 
+    // Скрываем контекстное меню при скролле и прокрутке панели
+    useEffect(() => {
+        if (!contextMenu) return;
+
+        const hideMenu = () => setContextMenu(null);
+        const handleWheelEvent = () => hideMenu();
+
+        window.addEventListener('resize', hideMenu);
+        window.addEventListener('scroll', hideMenu, true);
+        if (listRef.current) {
+            listRef.current.addEventListener('scroll', handleWheelEvent);
+        }
+
+        return () => {
+            window.removeEventListener('resize', hideMenu);
+            window.removeEventListener('scroll', hideMenu, true);
+            if (listRef.current) {
+                listRef.current.removeEventListener('scroll', handleWheelEvent);
+            }
+        };
+    }, [contextMenu]);
+
+    const handleContextMenu = (typeId: string, index: number, e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({
+            x: e.clientX,
+            y: e.clientY,
+            typeId,
+            index,
+        });
+    };
+
+    const handleItemClickDirect = (
+        typeId: string,
+        panelId: string,
+        index: number,
+        e: React.MouseEvent
+    ) => {
+        // Если открыто контекстное меню — закрываем его перед кликом
+        if (contextMenu) {
+            setContextMenu(null);
+        }
+        onItemClick(typeId, panelId, index, e);
+    };
+
     const hideScrollbar = listMaxHeight !== null && listMaxHeight >= maxContentHeight;
 
     const handleListDragOver = (e: React.DragEvent) => {
@@ -283,6 +337,7 @@ const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanel
                 pointerEvents: 'auto',
             }}
             onClick={handlePanelClick}
+            onContextMenu={(e) => e.preventDefault()}
         >
             {isAtBoundary.top && <div className={`${panelStyles.boundaryIndicator} ${panelStyles.topBoundary}`} />}
             {isAtBoundary.bottom && <div className={`${panelStyles.boundaryIndicator} ${panelStyles.bottomBoundary}`} />}
@@ -314,7 +369,8 @@ const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanel
                     <li
                         key={type.id}
                         className={`${panelStyles.navItem} ${currentDragItem?.itemId === type.id ? panelStyles.dragging : ''} ${selectedTypes.has(type.id) ? panelStyles.selected : ''}`}
-                        onClick={(e) => onItemClick(type.id, category, index, e)}
+                        onClick={(e) => handleItemClickDirect(type.id, category, index, e)}
+                        onContextMenu={(e) => handleContextMenu(type.id, index, e)}
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => handleKeyDown(type.id, category, index, e)}
@@ -331,6 +387,45 @@ const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanel
             </ul>
 
             <div className={panelStyles.resizeHandle} onMouseDown={handleResizerMouseDown} />
+
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    items={[
+                        {
+                            label: 'Открыть',
+                            icon: '👁️',
+                            onClick: () => {
+                                const syntheticEvent = {
+                                    stopPropagation: () => {},
+                                    ctrlKey: false,
+                                    shiftKey: false,
+                                    metaKey: false,
+                                } as unknown as React.MouseEvent;
+                                onItemClick(
+                                    contextMenu.typeId,
+                                    category,
+                                    contextMenu.index,
+                                    syntheticEvent
+                                );
+                            },
+                        },
+                        {
+                            label: 'Открыть в новой вкладке',
+                            icon: '🔗',
+                            onClick: () => {
+                                window.open(
+                                    `/view-objects/${contextMenu.typeId}`,
+                                    '_blank',
+                                    'noopener,noreferrer'
+                                );
+                            },
+                        },
+                    ]}
+                    onClose={() => setContextMenu(null)}
+                />
+            )}
         </div>
     );
 });

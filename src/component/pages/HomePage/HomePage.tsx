@@ -133,6 +133,7 @@ const HomePage: React.FC = () => {
 
   const user = getCurrentUser();
   const isAdminOrMaster = user && (user.role === 'Admin' || user.role === 'Master');
+  const isMaster = user && user.role === 'Master';
 
   useEffect(() => {
     try {
@@ -949,13 +950,22 @@ const HomePage: React.FC = () => {
       </div>
 
       <div className={styles.createButtonContainer}>
-        <FilledColorButton
-          onClick={() => navigate(`/schema-editor`)}
-          disabled={!isAdminOrMaster}
-          width="100px"
+        {/* Создать */}
+        <a
+          href="/schema-editor"
+          style={{ textDecoration: 'none', color: 'inherit' }}
+          onClick={(e) => {
+            if (e.ctrlKey || e.metaKey) return;
+            e.preventDefault();
+            if (isAdminOrMaster) navigate('/schema-editor');
+          }}
         >
-          Создать
-        </FilledColorButton>
+          <FilledColorButton disabled={!isAdminOrMaster} width="100px" onClick={() => {}} >
+            Создать
+          </FilledColorButton>
+        </a>
+
+        {/* Печать (модальное окно — не ссылка) */}
         <FilledColorButton
           onClick={() => setIsTemplateSelectorOpen(true)}
           disabled={!isAdminOrMaster}
@@ -964,8 +974,7 @@ const HomePage: React.FC = () => {
           Печать
         </FilledColorButton>
 
-
-
+        {/* Действия (модальное окно — не ссылка) */}
         <FilledColorButton
           onClick={() => setIsEdictModalOpen(true)}
           disabled={!isAdminOrMaster}
@@ -974,6 +983,7 @@ const HomePage: React.FC = () => {
           Действия
         </FilledColorButton>
 
+        {/* Статистика (модальное окно — не ссылка) */}
         <FilledColorButton
           onClick={() => {
             setStatsType('employee');
@@ -984,14 +994,57 @@ const HomePage: React.FC = () => {
         >
           Статистика
         </FilledColorButton>
-        
-        <FilledColorButton
-          onClick={() => navigate(`/checkpoint`)}
-          disabled={!isAdminOrMaster}
-          width="100px"
+
+        {/* Сведения */}
+        <a
+          href="/checkpoint"
+          style={{ textDecoration: 'none', color: 'inherit' }}
+          onClick={(e) => {
+            if (e.ctrlKey || e.metaKey) return;
+            e.preventDefault();
+            if (isAdminOrMaster) navigate('/checkpoint');
+          }}
         >
-          Сведения
-        </FilledColorButton>
+          <FilledColorButton disabled={!isAdminOrMaster} width="100px" onClick={() => {}} >
+            Сведения
+          </FilledColorButton>
+        </a>
+
+        {/* Админка */}
+        <a
+          href="/admin"
+          style={{ textDecoration: 'none', color: 'inherit' }}
+          onClick={(e) => {
+            if (e.ctrlKey || e.metaKey) return;
+            e.preventDefault();
+            if (isMaster) navigate('/admin');
+          }}
+        >
+          <FilledColorButton disabled={!isMaster} width="100px" onClick={() => {}} >
+            Админка
+          </FilledColorButton>
+        </a>
+
+        {/* Импорт */}
+        <a
+          href="/import"
+          style={{ textDecoration: 'none', color: 'inherit' }}
+          onClick={(e) => {
+            if (e.ctrlKey || e.metaKey) return;
+            e.preventDefault();
+            if (isAdminOrMaster) navigate('/import');
+          }}
+        >
+          <FilledColorButton
+            disabled={!isAdminOrMaster}
+            mainColor="#ffffff"
+            additionalColor="#f39c12"
+            width="100px"
+            onClick={() => {}} 
+          >
+            Импорт
+          </FilledColorButton>
+        </a>
 
         {selectedTypes.size > 0 && (
           <FilledColorButton

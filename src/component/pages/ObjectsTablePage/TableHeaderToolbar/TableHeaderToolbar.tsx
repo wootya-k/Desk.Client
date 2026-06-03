@@ -182,12 +182,19 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
       }
     };
 
+    // 🔥 НОВОЕ: Принудительный сброс состояния при потере фокуса окном браузера
+    const handleWindowBlur = () => {
+      setIsCtrlPressed(false);
+    };
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('blur', handleWindowBlur); // 👈 1. Добавляем слушатель потери фокуса
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('blur', handleWindowBlur); // 👈 2. Корректно удаляем слушатель при размонтировании
     };
   }, [toolbarMeta, isLoading, isSaveDisabled, statusFilter, onStatusFilterChange, onSaveClick, onBackClick, onGearClick, onFavoritesClick, onCreateClick, navigate, type, isAdminOrMaster]);
 

@@ -23,10 +23,13 @@ interface Props {
   onCancel: () => void;
 }
 
+// ✅ ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ для значений по умолчанию
+const DEFAULT_PAGINATION: PaginationConfig = { enabled: true, rowsPerPage: 14 };
+
 const ColumnSettingsModal: React.FC<Props> = ({
   initialColumns,
   defaultColumns,
-  initialPagination = { enabled: true, rowsPerPage: 14 },
+  initialPagination = DEFAULT_PAGINATION,
   onApply,
   onReset,
   onCancel
@@ -72,9 +75,10 @@ const ColumnSettingsModal: React.FC<Props> = ({
   const handleReset = () => {
     const resetCols = onReset();
     setColumns(resetCols.map(col => ({ ...col })));
-    const defaultPagination: PaginationConfig = { enabled: true, rowsPerPage: 14 };
-    setPaginationConfig(defaultPagination);
-    setRowsPerPageInput('14');
+
+    // ✅ Сброс строго к ЕДИНОЙ константе
+    setPaginationConfig(DEFAULT_PAGINATION);
+    setRowsPerPageInput(String(DEFAULT_PAGINATION.rowsPerPage));
   };
 
   const startScroll = (direction: number) => {
@@ -144,10 +148,8 @@ const ColumnSettingsModal: React.FC<Props> = ({
     setShowPaginationView(prev => !prev);
   }, []);
 
-  // ✅ Исправлено: клик по всей панели переключает пагинацию
   const handleTogglePanelClick = useCallback((e: React.MouseEvent<HTMLDivElement>): void => {
     const target = e.target as HTMLElement;
-    // Если клик был по чекбоксу - ничего не делаем (чекбокс сам переключится)
     if (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'checkbox') {
       return;
     }
@@ -157,12 +159,26 @@ const ColumnSettingsModal: React.FC<Props> = ({
   const handleRowsPerPageChange = useCallback((e: React.ChangeEvent<HTMLInputElement>): void => {
     const value = e.target.value;
     setRowsPerPageInput(value);
-    
+
     const numValue = parseInt(value, 10);
     if (!isNaN(numValue) && numValue > 0 && numValue <= 1000) {
       setPaginationConfig(prev => ({ ...prev, rowsPerPage: numValue }));
     }
   }, []);
+
+  const handleRowsPerPageBlur = useCallback(() => {
+    const numValue = parseInt(rowsPerPageInput, 10);
+    if (isNaN(numValue) || numValue < 1) {
+      setRowsPerPageInput('1');
+      setPaginationConfig(prev => ({ ...prev, rowsPerPage: 1 }));
+    } else if (numValue > 1000) {
+      setRowsPerPageInput('1000');
+      setPaginationConfig(prev => ({ ...prev, rowsPerPage: 1000 }));
+    } else {
+      setRowsPerPageInput(String(numValue));
+      setPaginationConfig(prev => ({ ...prev, rowsPerPage: numValue }));
+    }
+  }, [rowsPerPageInput]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -181,10 +197,6 @@ const ColumnSettingsModal: React.FC<Props> = ({
     };
   }, [onApply, onCancel, columns, paginationConfig]);
 
-  useEffect(() => {
-    setRowsPerPageInput(String(paginationConfig.rowsPerPage));
-  }, [paginationConfig.rowsPerPage]);
-
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       setIsMouseDown(true);
@@ -197,6 +209,14 @@ const ColumnSettingsModal: React.FC<Props> = ({
     }
     setIsMouseDown(false);
   };
+
+  const displayRowsPerPage = (() => {
+    const num = parseInt(rowsPerPageInput, 10);
+    if (!isNaN(num) && num >= 1 && num <= 1000) {
+      return rowsPerPageInput;
+    }
+    return '—';
+  })();
 
   return ReactDOM.createPortal(
     <dialog
@@ -230,8 +250,7 @@ const ColumnSettingsModal: React.FC<Props> = ({
 
         {showPaginationView ? (
           <div className={styles.paginationContent}>
-            {/* ✅ Панель включения пагинации - клик по всей панели */}
-            <div 
+            <div
               className={styles.paginationTogglePanel}
               onClick={handleTogglePanelClick}
             >
@@ -252,7 +271,6 @@ const ColumnSettingsModal: React.FC<Props> = ({
               </div>
             </div>
 
-            {/* Панель количества строк */}
             <div className={styles.paginationRowsPanel}>
               <label className={styles.paginationRowsLabel}>
                 <span className={styles.rowsLabel}>Строк на странице:</span>
@@ -261,21 +279,21 @@ const ColumnSettingsModal: React.FC<Props> = ({
                   className={styles.rowsPerPageInput}
                   value={rowsPerPageInput}
                   onChange={handleRowsPerPageChange}
+                  onBlur={handleRowsPerPageBlur}
                   min={1}
                   max={1000}
                   disabled={!paginationConfig.enabled}
                 />
               </label>
               <div className={styles.paginationHint}>
-                Будет отображаться по <strong>{paginationConfig.enabled && paginationConfig.rowsPerPage > 0 && paginationConfig.rowsPerPage <= 1000 ? paginationConfig.rowsPerPage : '—'}</strong> строк на странице
+                {paginationConfig.enabled
+                  ? `Будет отображаться по ${displayRowsPerPage} строк на странице`
+                  : 'Будут отображаться все строки сразу'}
               </div>
             </div>
           </div>
         ) : (
-          <ul
-            className={styles.columnList}
-            ref={listRef}
-          >
+          <ul className={styles.columnList} ref={listRef}>
             {columns.map((col, idx) => (
               <li
                 key={col.accessor}
@@ -315,12 +333,7 @@ const ColumnSettingsModal: React.FC<Props> = ({
         )}
 
         <div className={styles.modalActions}>
-          <FilledColorButton
-            width='94px'
-            onClick={() => {
-              onApply(columns, paginationConfig);
-            }}
-          >
+          <FilledColorButton width='94px' onClick={() => onApply(columns, paginationConfig)}>
             Применить
           </FilledColorButton>
           <FilledColorButton

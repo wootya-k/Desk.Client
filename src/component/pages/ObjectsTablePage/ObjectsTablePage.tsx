@@ -42,6 +42,12 @@ export interface PaginationConfig {
 const TABLE_CONFIG_KEY = 'tableColumnsConfig';
 const PAGINATION_CONFIG_KEY = 'tablePaginationConfig';
 
+// ✅ НОВОЕ: Функция вместо константы, которая знает про ширину таблицы
+const getDefaultPagination = (isNarrowTable: boolean): PaginationConfig => ({
+  enabled: true,
+  rowsPerPage: isNarrowTable ? 50 : 15 // 50 для узкой, 15 для широкой
+});
+
 interface TableConfig { [tableType: string]: ColumnConfig[]; }
 interface PaginationConfigMap { [tableType: string]: PaginationConfig; }
 
@@ -124,7 +130,9 @@ const ObjectsTablePage: React.FC = () => {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [paginationConfig, setPaginationConfig] = useState<PaginationConfig>({ enabled: true, rowsPerPage: 14 });
+
+  // ✅ НОВОЕ: Базовый фоллбэк, который будет перезаписан в useEffect при загрузке
+  const [paginationConfig, setPaginationConfig] = useState<PaginationConfig>({ enabled: true, rowsPerPage: 15 });
   const [currentPage, setCurrentPage] = useState(1);
 
   const handleSaveClick = useCallback(() => { if (!searchTerm.trim()) return; setIsSaveModalOpen(true); }, [searchTerm]);
@@ -214,7 +222,6 @@ const ObjectsTablePage: React.FC = () => {
     return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keyup', handleKeyUp); };
   }, []);
 
-  // 🔥 СИНХРОНИЗАЦИЯ СКРОЛЛОВ: НИЖНИЙ ФИКСИРОВАННЫЙ → ТАБЛИЦА
   useEffect(() => {
     const tableContainer = tableContainerRef.current;
     const fixedScroll = fixedScrollRef.current;
@@ -280,12 +287,25 @@ const ObjectsTablePage: React.FC = () => {
         const newMap: Record<string, string> = {};
         Object.entries(fieldTitles).forEach(([en, ru]) => { newMap[ru.toLowerCase()] = en; });
         setRuToEnMap(newMap);
+
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
         const savedConfig = loadTableConfig(type);
         const initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultCols.map(col => ({ ...col }));
+
+        // ✅ НОВОЕ: Вычисляем, узкая ли таблица, на основе видимых колонок (логика как в ObjectTableComponent)
+        const isNarrow = initialColumns.filter(col => col.visible).length <= 12;
+        const dynamicDefaultPagination = getDefaultPagination(isNarrow);
+
         const savedPagination = loadPaginationConfig(type);
-        if (savedPagination) setPaginationConfig(savedPagination);
+
+        // ✅ НОВОЕ: Если настройки сохранены - берем их. Если нет - применяем умный дефолт (50 или 15)
+        if (savedPagination) {
+          setPaginationConfig(savedPagination);
+        } else {
+          setPaginationConfig(dynamicDefaultPagination);
+        }
+
         const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => ({ ...JSON.parse(item.value), id: item.id, status: item.status }));
         setColumns(initialColumns); setRows(parsedRows); setIsLoading(false);
       } catch (err) {
@@ -329,12 +349,17 @@ const ObjectsTablePage: React.FC = () => {
     setIsModalOpen(false);
   }, [type]);
 
+  // ✅ НОВОЕ: Сброс теперь тоже учитывает, узкая таблица или широкая
   const handleResetSettings = useCallback(() => {
     const resetColumns = defaultColumns.map(col => ({ ...col }));
     if (type) {
       saveTableConfig(type, resetColumns);
-      const defaultPagination: PaginationConfig = { enabled: true, rowsPerPage: 14 };
-      savePaginationConfig(type, defaultPagination); setPaginationConfig(defaultPagination);
+
+      const isNarrow = resetColumns.filter(col => col.visible).length <= 12;
+      const resetPagination = getDefaultPagination(isNarrow);
+
+      savePaginationConfig(type, resetPagination);
+      setPaginationConfig(resetPagination);
     }
     return resetColumns;
   }, [defaultColumns, type]);
@@ -377,33 +402,35 @@ const ObjectsTablePage: React.FC = () => {
 
   const isEmptyState = !isLoading && !error && filteredRows.length === 0;
   const isEmptyDueToSearch = isEmptyState && searchTerm.trim() !== '';
-useEffect(() => {
-  const tableContainer = tableContainerRef.current;
-  if (!tableContainer) return;
 
-  const updateStickyTop = () => {
-    const toolbar = document.querySelector('.toolbarWrapper');
-    if (!toolbar) return;
-    
-    const toolbarRect = toolbar.getBoundingClientRect();
-    const containerRect = tableContainer.getBoundingClientRect();
-    const topOffset = toolbarRect.bottom - containerRect.top;
-    
-    const headerCells = tableContainer.querySelectorAll(`.${styles.headerCell}`);
-    headerCells.forEach(cell => {
-      (cell as HTMLElement).style.top = `${Math.max(0, topOffset)}px`;
-    });
-  };
+  useEffect(() => {
+    const tableContainer = tableContainerRef.current;
+    if (!tableContainer) return;
 
-  updateStickyTop();
-  window.addEventListener('resize', updateStickyTop);
-  window.addEventListener('scroll', updateStickyTop, true);
-  
-  return () => {
-    window.removeEventListener('resize', updateStickyTop);
-    window.removeEventListener('scroll', updateStickyTop, true);
-  };
-}, []);
+    const updateStickyTop = () => {
+      const toolbar = document.querySelector('.toolbarWrapper');
+      if (!toolbar) return;
+
+      const toolbarRect = toolbar.getBoundingClientRect();
+      const containerRect = tableContainer.getBoundingClientRect();
+      const topOffset = toolbarRect.bottom - containerRect.top;
+
+      const headerCells = tableContainer.querySelectorAll(`.${styles.headerCell}`);
+      headerCells.forEach(cell => {
+        (cell as HTMLElement).style.top = `${Math.max(0, topOffset)}px`;
+      });
+    };
+
+    updateStickyTop();
+    window.addEventListener('resize', updateStickyTop);
+    window.addEventListener('scroll', updateStickyTop, true);
+
+    return () => {
+      window.removeEventListener('resize', updateStickyTop);
+      window.removeEventListener('scroll', updateStickyTop, true);
+    };
+  }, []);
+
   return (
     <div className={styles.pageContainer}>
       <div className={styles.toolbarWrapper}>
@@ -456,14 +483,12 @@ useEffect(() => {
         </div>
       </main>
 
-      {/* 🔽 ФИКСИРОВАННЫЙ ГОРИЗОНТАЛЬНЫЙ СКРОЛЛ — всегда внизу экрана */}
       {!isLoading && !error && filteredRows.length > 0 && (
         <div className={styles.fixedHorizontalScroll} ref={fixedScrollRef}>
           <div className={styles.fixedHorizontalScrollContent} style={{ width: `${tableWidth}px` }} />
         </div>
       )}
 
-      {/* Модальные окна */}
       {isDeleteModalOpen && ReactDOM.createPortal(<DeleteConfirmationModal preview="Вы уверены, что хотите удалить этот объект?" onConfirm={handleConfirmDelete} onCancel={handleCancelDelete} />, document.getElementById('modal-root')!)}
       {isModalOpen && ReactDOM.createPortal(<ColumnSettingsModal initialColumns={columns} defaultColumns={defaultColumns} initialPagination={paginationConfig} onApply={handleApplySettings} onReset={handleResetSettings} onCancel={() => setIsModalOpen(false)} />, document.getElementById('modal-root')!)}
       {isFavoritesModalOpen && ReactDOM.createPortal(<FavoritesModal isOpen={isFavoritesModalOpen} onClose={() => setIsFavoritesModalOpen(false)} favorites={savedQueries} onSelect={handleSelectFavoriteQuery} onDelete={handleDeleteFavoriteQuery} title={objectType} type={type} />, document.getElementById('modal-root')!)}

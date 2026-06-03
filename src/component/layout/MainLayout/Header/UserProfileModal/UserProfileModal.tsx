@@ -84,6 +84,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
             <div className={styles.hint}>Логин нельзя изменить</div>
           </div>
           
+           <div className={styles.formGroup}>
+            <label className={styles.label}>Роль</label>
+            <div className={styles.staticValue}>{user.role}</div>
+            <div className={styles.hint}>Для изменения роли обратитесь в техподдержку</div>
+          </div>
+
           <div className={styles.formGroup}>
             <label htmlFor="lastNameInput" className={styles.label}>Фамилия</label>
             <input
@@ -120,7 +126,18 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
           </div>
           
           <div className={styles.formGroup}>
-            <label className={styles.label}>Должность</label>
+            <label className={styles.label}>Предпросмотр должности</label>
+            <input
+              type="text"
+              name="position"
+              value={user.positionPreview}
+              onChange={handleChange}
+              className={styles.input}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Официальная должность</label>
             <input
               type="text"
               name="position"
@@ -129,11 +146,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
               className={styles.input}
             />
           </div>
-          
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Роль</label>
-            <div className={styles.staticValue}>{user.role}</div>
-          </div>
+
+         
         </div>
 
         <div className={styles.buttonSection}>
