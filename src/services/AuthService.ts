@@ -41,8 +41,6 @@ const updateAuthState = (newState: Partial<AuthState>) => {
 
   if (newState.user) {
     sessionStorage.setItem('user', JSON.stringify(newState.user));
-  } else {
-    sessionStorage.removeItem('user');
   }
 
   notifySubscribers();
@@ -50,7 +48,7 @@ const updateAuthState = (newState: Partial<AuthState>) => {
 
 export const login = async (loginStr: string, password: string): Promise<UserDto> => {
   const url = await buildUrl(`/api/auth/login`);
-  
+
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -62,7 +60,7 @@ export const login = async (loginStr: string, password: string): Promise<UserDto
     if (!response.ok) {
       let errorMessage = 'Ошибка авторизации';
       let errorBody = '';
-      
+
       try {
         errorBody = await response.text();
       } catch (e) {
@@ -85,7 +83,7 @@ export const login = async (loginStr: string, password: string): Promise<UserDto
         default:
           errorMessage = `Ошибка ${response.status}: ${errorBody || 'неизвестная ошибка'}`;
       }
-      
+
       throw new Error(errorMessage);
     }
 
@@ -99,12 +97,12 @@ export const login = async (loginStr: string, password: string): Promise<UserDto
     scheduleTokenRefresh(data.accessToken);
 
     return data.user;
-    
+
   } catch (error) {
     if (error instanceof TypeError) {
       throw new Error('Сетевая ошибка: проверьте подключение');
     }
-    
+
     throw error;
   }
 };
@@ -135,8 +133,7 @@ export const logout = async (): Promise<void> => {
 
 export const refreshAccessToken = async (): Promise<string> => {
   const url = await buildUrl(`/api/auth/refresh`);
-  console.log('[Auth] Запрос refresh:', url);
-  
+
   const response = await fetch(url, {
     method: 'POST',
     credentials: 'include',
@@ -145,17 +142,13 @@ export const refreshAccessToken = async (): Promise<string> => {
     }
   });
 
-  console.log('[Auth] Ответ refresh:', response.status);
-
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error('[Auth] Ошибка refresh:', errorText);
     throw new Error(`Ошибка обновления токена: ${response.status}`);
   }
 
   const newAccessToken = await response.text();
   const cleanToken = newAccessToken.replace(/^"|"$/g, '');
-  
+
   updateAuthState({ accessToken: cleanToken });
   scheduleTokenRefresh(cleanToken);
 
@@ -187,26 +180,57 @@ export const scheduleTokenRefresh = (token: string): void => {
 
 export const initAuth = async (): Promise<boolean> => {
   console.log('[Auth] Инициализация сессии...');
-  console.log('[Auth] Текущий accessToken:', authState.accessToken ? 'есть' : 'нет');
   
   // Если access token уже есть в памяти
   if (authState.accessToken) {
-    console.log('[Auth] Access token найден в памяти, планируем обновление');
     scheduleTokenRefresh(authState.accessToken);
+    
+    // Если user есть в sessionStorage — всё ок
+    if (authState.user) {
+      return true;
+    }
+    
+    // Иначе получаем user с сервера
+    await fetchUser();
     return true;
   }
 
-  // Пытаемся восстановить сессию через refresh token (из cookie)
+  // Пытаемся восстановить сессию через refresh token
   try {
-    console.log('[Auth] Пытаемся восстановить сессию через refresh token...');
     const token = await refreshAccessToken();
-    console.log('[Auth] Сессия восстановлена успешно');
+    
+    // После refresh получаем user с сервера
+    await fetchUser();
+    
     return !!token;
   } catch (error) {
     console.error('[Auth] Не удалось восстановить сессию:', error);
     return false;
   }
 };
+
+
+const fetchUser = async (): Promise<void> => {
+  if (!authState.accessToken) return;
+  
+  try {
+    const url = await buildUrl('/api/auth/me');
+    const response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'Authorization': `Bearer ${authState.accessToken}`
+      }
+    });
+    
+    if (response.ok) {
+      const user = await response.json();
+      updateAuthState({ user });
+    }
+  } catch (error) {
+    console.error('[Auth] Не удалось получить данные пользователя:', error);
+  }
+};
+
 
 export const getCurrentUser = (): UserDto | null => authState.user;
 export const getAccessToken = (): string | null => authState.accessToken;

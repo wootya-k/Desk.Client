@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { login } from '@services/AuthService';
 import styles from './LoginPage.module.css';
@@ -14,6 +14,8 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const formRef = useRef<HTMLFormElement>(null);
   const usernameRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
@@ -27,6 +29,22 @@ const LoginPage = () => {
   } = useForm<FormValues>();
 
   const formValues = watch();
+
+  // Получаем URL, куда нужно вернуться после логина
+  const getReturnUrl = (): string => {
+    // Сначала проверяем query параметр (из fetch-interceptor)
+    const returnUrlFromQuery = searchParams.get('returnUrl');
+    if (returnUrlFromQuery) return returnUrlFromQuery;
+
+    // Потом проверяем state (из ProtectedRoute)
+    const state = location.state as { from?: string } | null;
+    if (state?.from) return state.from;
+
+    // По умолчанию - на главную
+    return '/';
+  };
+
+  const returnUrl = getReturnUrl();
 
   // Регистрируем поля с refs
   const usernameRegister = register('username', { required: 'Обязательное поле' });
@@ -111,7 +129,8 @@ const LoginPage = () => {
     
     try {
       await login(data.username, data.password);
-      navigate('/');
+      // Редиректим на исходную страницу
+      navigate(returnUrl, { replace: true });
     } catch (err) {
       let message = 'Ошибка авторизации';
       

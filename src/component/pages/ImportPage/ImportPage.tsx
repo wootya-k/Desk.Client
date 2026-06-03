@@ -374,7 +374,7 @@ const ImportPage: React.FC = () => {
                             <AutocompleteInput
                                 value={searchTerm}
                                 onChange={setSearchTerm}
-                                placeholder="Поиск по таблице..."
+                                placeholder="Поиск..."
                                 ruFields={ruFields}
                                 rowsData={autocompleteRowsData}
                                 ruToEnMap={ruToEnMap}

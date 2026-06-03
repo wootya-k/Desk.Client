@@ -39,7 +39,12 @@ export function setupFetchInterceptor() {
         if (window.location.pathname !== '/login' && !isRedirecting) {
           isRedirecting = true;
           console.warn('Сессия истекла. Перенаправляем на /login...');
-          window.location.href = '/login';
+          
+          // Сохраняем текущий путь для возврата после логина
+          const currentPath = window.location.pathname + window.location.search;
+          const returnUrl = encodeURIComponent(currentPath);
+          
+          window.location.href = `/login?returnUrl=${returnUrl}`;
         }
       }
       
