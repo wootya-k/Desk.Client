@@ -7,15 +7,13 @@ export function setupFetchInterceptor() {
   let isRedirecting = false;
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    // Преобразуем input в строку URL
     const url = input instanceof URL ? input.toString() : 
                 typeof input === 'string' ? input : input.url;
 
     const publicEndpoints = [
       '/auth/login',
       '/auth/refresh',
-      '/public',
-      '/login'
+      '/public'
     ];
     
     const isPublic = publicEndpoints.some(endpoint => url?.includes(endpoint));
@@ -29,26 +27,20 @@ export function setupFetchInterceptor() {
     }
     
     try {
-      // Преобразуем URL обратно в нужный формат
-      const finalInput = input instanceof URL ? input : input;
-      
-      const response = await originalFetch(finalInput, {
+      const response = await originalFetch(input, {
         ...init,
-        headers
+        headers,
+        credentials: 'include' // ВАЖНО: отправляем cookies с каждым запросом
       });
       
-      if (response.status === 401) {
-        console.warn('Обнаружена 401 ошибка. Проверяем необходимость перенаправления...');
+      if (response.status === 401 && !isPublic) {
+        console.warn('Обнаружена 401 ошибка');
         
-        if (!isPublic && 
-            window.location.pathname !== '/login' && 
-            !isRedirecting) {
-          
+        if (window.location.pathname !== '/login' && !isRedirecting) {
           isRedirecting = true;
           console.warn('Сессия истекла. Перенаправляем на /login...');
           window.location.href = '/login';
         }
-        return response;
       }
       
       return response;

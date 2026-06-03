@@ -7,6 +7,7 @@
     "postinstall": "patch-package --ignore-errors",
     "dev": "vite",
     "build": "vite build",
+    "build:production": "tsc && vite build --mode production",
     "lint": "eslint .",
     "preview": "vite preview"
   },

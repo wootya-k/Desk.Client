@@ -1,14 +1,5 @@
-// AuthService.ts
 import { buildUrl } from 'config';
-interface AuthState {
-  accessToken: string | null;
-  user: UserDto | null;
-}
-interface AuthResponse {
-  accessToken: string;
-  refreshToken: RefreshTokenDto;
-  user: UserDto;
-}
+
 export interface UserDto {
   login: string;
   firstName: string;
@@ -19,25 +10,27 @@ export interface UserDto {
   role: string;
 }
 
-interface RefreshTokenDto {
-  tokenId: string;
-  refreshToken: string;
+interface AuthResponse {
+  accessToken: string;
+  user: UserDto;
 }
 
+interface AuthState {
+  accessToken: string | null;
+  user: UserDto | null;
+}
+
+// Access token храним в памяти (не в sessionStorage/localStorage)
 let authState: AuthState = {
-  accessToken: sessionStorage.getItem('accessToken'),
+  accessToken: null,
   user: JSON.parse(sessionStorage.getItem('user') || 'null')
 };
-
-let refreshToken: RefreshTokenDto | null = JSON.parse(
-  localStorage.getItem('refreshToken') || 'null'
-);
 
 let tokenRefreshTimer: number | null = null;
 const subscribers = new Set<() => void>();
 
-// Система подписчиков для обновления UI
 const notifySubscribers = () => subscribers.forEach(cb => cb());
+
 export const subscribe = (callback: () => void) => {
   subscribers.add(callback);
   return () => subscribers.delete(callback);
@@ -46,12 +39,10 @@ export const subscribe = (callback: () => void) => {
 const updateAuthState = (newState: Partial<AuthState>) => {
   authState = { ...authState, ...newState };
 
-  if (newState.accessToken) {
-    sessionStorage.setItem('accessToken', newState.accessToken);
-  }
-
   if (newState.user) {
     sessionStorage.setItem('user', JSON.stringify(newState.user));
+  } else {
+    sessionStorage.removeItem('user');
   }
 
   notifySubscribers();
@@ -64,22 +55,20 @@ export const login = async (loginStr: string, password: string): Promise<UserDto
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // ВАЖНО: для работы с cookies
       body: JSON.stringify({ login: loginStr, password }),
     });
 
-    // Обрабатываем ошибки HTTP
     if (!response.ok) {
       let errorMessage = 'Ошибка авторизации';
-      
-      // Парсим тело ошибки, если оно есть
       let errorBody = '';
+      
       try {
         errorBody = await response.text();
       } catch (e) {
         // Не удалось прочитать тело ошибки
       }
 
-      // Специфичные сообщения на основе статуса
       switch (response.status) {
         case 404:
           errorMessage = 'Пользователь не найден';
@@ -100,7 +89,6 @@ export const login = async (loginStr: string, password: string): Promise<UserDto
       throw new Error(errorMessage);
     }
 
-    // Успешный ответ
     const data: AuthResponse = await response.json();
 
     updateAuthState({
@@ -108,91 +96,128 @@ export const login = async (loginStr: string, password: string): Promise<UserDto
       user: data.user
     });
 
-    localStorage.setItem('refreshToken', JSON.stringify(data.refreshToken));
-    refreshToken = data.refreshToken;
     scheduleTokenRefresh(data.accessToken);
 
     return data.user;
     
   } catch (error) {
-    // Обрабатываем сетевые ошибки
     if (error instanceof TypeError) {
       throw new Error('Сетевая ошибка: проверьте подключение');
     }
     
-    // Пробрасываем уже обработанные ошибки
     throw error;
   }
 };
 
 export const logout = async (): Promise<void> => {
   try {
-    const url = await buildUrl(`/api/auth/logout/${refreshToken?.tokenId}`);
+    const url = await buildUrl(`/api/auth/logout`);
     await fetch(url, {
-      method: 'DELETE',
+      method: 'POST',
+      credentials: 'include', // ВАЖНО
       headers: {
         'Authorization': `Bearer ${authState.accessToken}`,
         'Content-Type': 'application/json'
       }
     });
+  } catch (error) {
+    console.error('Ошибка при выходе:', error);
   } finally {
     sessionStorage.clear();
-    localStorage.removeItem('refreshToken');
-    refreshToken = null;
     updateAuthState({ accessToken: null, user: null });
 
     if (tokenRefreshTimer) {
       clearTimeout(tokenRefreshTimer);
+      tokenRefreshTimer = null;
     }
   }
 };
 
 export const refreshAccessToken = async (): Promise<string> => {
-  if (!refreshToken) throw new Error('Сессия истекла');
-
   const url = await buildUrl(`/api/auth/refresh`);
+  console.log('[Auth] Запрос refresh:', url);
+  
   const response = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tokenId: refreshToken.tokenId,
-      refreshToken: refreshToken.refreshToken
-    }),
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json'
+    }
   });
 
-  const newAccessToken = await response.text();
-  updateAuthState({ accessToken: newAccessToken });
-  scheduleTokenRefresh(newAccessToken);
+  console.log('[Auth] Ответ refresh:', response.status);
 
-  return newAccessToken;
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[Auth] Ошибка refresh:', errorText);
+    throw new Error(`Ошибка обновления токена: ${response.status}`);
+  }
+
+  const newAccessToken = await response.text();
+  const cleanToken = newAccessToken.replace(/^"|"$/g, '');
+  
+  updateAuthState({ accessToken: cleanToken });
+  scheduleTokenRefresh(cleanToken);
+
+  return cleanToken;
 };
 
 export const scheduleTokenRefresh = (token: string): void => {
-  if (tokenRefreshTimer) clearTimeout(tokenRefreshTimer);
+  if (tokenRefreshTimer) {
+    clearTimeout(tokenRefreshTimer);
+  }
 
-  const decoded = JSON.parse(atob(token.split('.')[1]));
-  const expiresIn = decoded.exp * 1000 - Date.now();
-  const refreshTime = Math.max(expiresIn - 60000, 0);
+  try {
+    const decoded = JSON.parse(atob(token.split('.')[1]));
+    const expiresIn = decoded.exp * 1000 - Date.now();
+    const refreshTime = Math.max(expiresIn - 60000, 0);
 
-  tokenRefreshTimer = setTimeout(async () => {
-    try {
-      await refreshAccessToken();
-    } catch {
-      logout();
-    }
-  }, refreshTime);
+    tokenRefreshTimer = window.setTimeout(async () => {
+      try {
+        await refreshAccessToken();
+      } catch (error) {
+        console.error('Не удалось обновить токен:', error);
+        await logout();
+      }
+    }, refreshTime);
+  } catch (error) {
+    console.error('Ошибка при планировании обновления токена:', error);
+  }
+};
+
+export const initAuth = async (): Promise<boolean> => {
+  console.log('[Auth] Инициализация сессии...');
+  console.log('[Auth] Текущий accessToken:', authState.accessToken ? 'есть' : 'нет');
+  
+  // Если access token уже есть в памяти
+  if (authState.accessToken) {
+    console.log('[Auth] Access token найден в памяти, планируем обновление');
+    scheduleTokenRefresh(authState.accessToken);
+    return true;
+  }
+
+  // Пытаемся восстановить сессию через refresh token (из cookie)
+  try {
+    console.log('[Auth] Пытаемся восстановить сессию через refresh token...');
+    const token = await refreshAccessToken();
+    console.log('[Auth] Сессия восстановлена успешно');
+    return !!token;
+  } catch (error) {
+    console.error('[Auth] Не удалось восстановить сессию:', error);
+    return false;
+  }
 };
 
 export const getCurrentUser = (): UserDto | null => authState.user;
 export const getAccessToken = (): string | null => authState.accessToken;
-export const isAuthenticated = (): boolean => !!refreshToken && !!authState.accessToken;
-
+export const isAuthenticated = (): boolean => !!authState.accessToken;
 
 if (import.meta.env.DEV) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).AuthService = {
     getCurrentUser,
     getAccessToken,
-    isAuthenticated
+    isAuthenticated,
+    initAuth
   };
 }

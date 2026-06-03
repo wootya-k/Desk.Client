@@ -2,55 +2,70 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path'; // Импортируем модуль path для работы с путями
+import { copyFileSync } from 'fs';
 
 export default defineConfig(({ mode, command }) => {
-    // Загружаем переменные окружения в зависимости от режима
     const env = loadEnv(mode, process.cwd(), '');
 
     const pluginsConfig = [
-            react(),
-            tsconfigPaths()
-        ];
-    
+        react(),
+        tsconfigPaths(),
+        // Копируем правильный config.json в зависимости от режима
+        {
+            name: 'copy-config',
+            closeBundle() {
+                const configSource = mode === 'production' 
+                    ? 'public/config.production.json'
+                    : mode === 'staging'
+                    ? 'public/config.staging.json'
+                    : 'public/config.json';
+                
+                try {
+                    copyFileSync(configSource, 'dist/config.json');
+                    console.log(`Copied ${configSource} to dist/config.json`);
+                } catch (error) {
+                    console.error('Failed to copy config.json:', error);
+                }
+            }
+        }
+    ];
+
     const defineConfig = {
-            'process.env': env, // Определяем process.env для использования в приложении
-        };
+        'process.env': env, // Определяем process.env для использования в приложении
+    };
 
     const resolveConfig = {
-            alias: {
-                '@': path.resolve(__dirname, './src'), // Алиас для src
-                '@jsdevtools/ono': '@jsdevtools/ono/cjs/index.js', // Алиас для jsdevtools
-                path: 'path-browserify', // Добавляем алиас для path
-            },
-        };
+        alias: {
+            '@': path.resolve(__dirname, './src'), // Алиас для src
+            '@jsdevtools/ono': '@jsdevtools/ono/cjs/index.js', // Алиас для jsdevtools
+            path: 'path-browserify', // Добавляем алиас для path
+        },
+    };
 
-    const serverConfig = command === 'serve' 
+    const serverConfig = command === 'serve'
         ? {
-            open: '/',          // Автооткрытие браузера
-            proxy: {            // Прокси-настройки
-                // Прокси для API-запросов
+            open: '/',
+            proxy: {
                 '/api': {
                     target: env.PROXY_URL,
                     changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/api/, ''),
-                    secure: false,  // Для HTTPS с самоподписанными сертификатами
+                    // УБРАТЬ rewrite — бэкенд ожидает /api/auth/login
+                    secure: false,
                 },
-                
-                // Прокси для WebSockets (если нужно)
-                '/socket.io': {
+                '/notificationHub': {
                     target: env.PROXY_URL,
                     ws: true,
                     changeOrigin: true,
                 }
             }
-        } 
+        }
         : undefined;
 
     const mainConfig = {
         plugins: pluginsConfig,
-        define:  defineConfig,
+        define: defineConfig,
         resolve: resolveConfig,
-        server:  serverConfig,
+        server: serverConfig,
     };
 
     return mainConfig;
