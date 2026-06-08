@@ -6,7 +6,13 @@
   width: 100%;
   box-sizing: border-box;
   overflow: hidden;
-  background: linear-gradient(180deg, #fafafa 0%, #f5f7fa 100%);
+  background-image:
+    linear-gradient(rgba(250, 250, 250, 0.94), rgba(245, 247, 250, 0.99)),
+    url('/net.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 
@@ -40,10 +46,12 @@
     box-shadow: 0 4px 20px rgba(52, 152, 219, 0.4);
     border-color: #3498db;
   }
+
   50% {
     box-shadow: 0 4px 25px rgba(52, 152, 219, 0.7);
     border-color: #2980b9;
   }
+
   100% {
     box-shadow: 0 4px 20px rgba(52, 152, 219, 0.4);
     border-color: #3498db;
@@ -139,6 +147,7 @@
   bottom: 0;
   width: 5px;
 }
+
 /* ... существующие стили ... */
 
 /* Контейнер кнопок — самый верхний слой */
@@ -163,31 +172,37 @@
 }
 
 .connectionsContainer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 5;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
 }
 
 .panelsArea {
-    position: relative;
-    width: 100%;
-    height: 100vh;
-    overflow: auto;
-    z-index: 10;
-    pointer-events: auto;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: auto;
+  z-index: 10;
+  pointer-events: auto;
 }
+
 /* Новая нижняя панель управления */
 .bottomControlPanel {
-  position: fixed; /* Фиксируем относительно окна браузера */
-  bottom: 30px;    /* Отступ снизу */
-  left: 50%;       /* Центрируем по горизонтали */
-  transform: translateX(-50%); /* Точная центровка */
-  z-index: 1000;   /* Поверх всего, включая Archer и панели */
-  
+  position: fixed;
+  /* Фиксируем относительно окна браузера */
+  bottom: 30px;
+  /* Отступ снизу */
+  left: 50%;
+  /* Центрируем по горизонтали */
+  transform: translateX(-50%);
+  /* Точная центровка */
+  z-index: 1000;
+  /* Поверх всего, включая Archer и панели */
+
   padding: 8px 16px;
   border-radius: 16px;
   display: flex;
@@ -197,7 +212,8 @@
 
 .controlPanelContent {
   display: flex;
-  gap: 12px; /* Расстояние между кнопками */
+  gap: 12px;
+  /* Расстояние между кнопками */
   align-items: center;
 }
 

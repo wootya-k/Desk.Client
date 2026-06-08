@@ -1,4 +1,3 @@
-// TableHeaderToolbar.tsx — ПОЛНЫЙ ФАЙЛ С ПАГИНАЦИЕЙ
 import React, { FC, useEffect, useState, useCallback, useRef } from 'react';
 import FilledColorButton from '@commons/FilledColorButton/FilledColorButton';
 import GearButton from '@commons/GearButton/GearButton';
@@ -23,8 +22,6 @@ interface TableHeaderToolbarProps {
   onCreateClick: () => void;
   onGearClick: () => void;
   onFavoritesClick: () => void;
-  onSaveClick: () => void;
-  isSaveDisabled?: boolean;
   ruFields: string[];
   rowsData: Record<string, unknown>[];
   ruToEnMap: Record<string, string>;
@@ -33,13 +30,11 @@ interface TableHeaderToolbarProps {
   onStatusFilterChange: (value: 'true' | 'false' | 'all') => void;
   filteredRowsCount?: number;
   savedQueries?: SavedQuery[];
-  // === ПАГИНАЦИЯ ===
   currentPage?: number;
   totalPages?: number;
   onPageChange?: (page: number) => void;
   itemsPerPage?: number;
   totalItems?: number;
-  // ✅ НОВОЕ: флаг включения/отключения пагинации
   paginationEnabled?: boolean;
 }
 
@@ -60,8 +55,6 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
   onCreateClick,
   onGearClick,
   onFavoritesClick,
-  onSaveClick,
-  isSaveDisabled = true,
   ruFields,
   rowsData,
   ruToEnMap,
@@ -70,7 +63,6 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
   onStatusFilterChange,
   filteredRowsCount,
   savedQueries = [],
-  // === ДЕСТРУКТУРИЗАЦИЯ ПАГИНАЦИИ ===
   currentPage = 1,
   totalPages = 1,
   onPageChange,
@@ -86,7 +78,6 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const helpButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Закрытие справки при клике вне
   useEffect(() => {
     if (!isHelpOpen) return;
 
@@ -117,9 +108,8 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
         input?.focus();
       }
     },
-    { id: 5, label: 'Сохранить', disabled: isSaveDisabled || isLoading, isInput: false },
     {
-      id: 6,
+      id: 5,
       label: 'Фильтр статуса',
       disabled: false,
       isInput: false,
@@ -132,10 +122,10 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
         onStatusFilterChange(next[statusFilter]);
       }
     },
-    { id: 7, label: objectType || 'Схема', disabled: !isAdminOrMaster || isLoading, isInput: false },
-    { id: 8, label: 'Создать', disabled: isLoading, isInput: false },
+    { id: 6, label: objectType || 'Схема', disabled: !isAdminOrMaster || isLoading, isInput: false },
+    { id: 7, label: 'Создать', disabled: isLoading, isInput: false },
   ].filter((_, index) => {
-    if (index === 6 && !objectType) return false;
+    if (index === 5 && !objectType) return false;
     return true;
   });
 
@@ -146,7 +136,7 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
         return;
       }
 
-      if ((e.ctrlKey || e.metaKey) && /^[1-8]$/.test(e.key)) {
+      if ((e.ctrlKey || e.metaKey) && /^[1-7]$/.test(e.key)) {
         e.preventDefault();
         const index = parseInt(e.key, 10) - 1;
         const item = toolbarMeta[index];
@@ -159,16 +149,15 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
               case 0: onBackClick(); break;
               case 1: onGearClick(); break;
               case 2: onFavoritesClick(); break;
-              case 4: onSaveClick(); break;
-              case 5: {
+              case 4: {
                 const next: Record<'true' | 'false' | 'all', 'true' | 'false' | 'all'> = {
                   'true': 'false', 'false': 'all', 'all': 'true',
                 };
                 onStatusFilterChange(next[statusFilter]);
                 break;
               }
-              case 6: if (isAdminOrMaster) navigate(`/schema-editor/${type}`); break;
-              case 7: onCreateClick(); break;
+              case 5: if (isAdminOrMaster) navigate(`/schema-editor/${type}`); break;
+              case 6: onCreateClick(); break;
             }
           }
         }
@@ -182,21 +171,20 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
       }
     };
 
-    // 🔥 НОВОЕ: Принудительный сброс состояния при потере фокуса окном браузера
     const handleWindowBlur = () => {
       setIsCtrlPressed(false);
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('blur', handleWindowBlur); // 👈 1. Добавляем слушатель потери фокуса
+    window.addEventListener('blur', handleWindowBlur);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('blur', handleWindowBlur); // 👈 2. Корректно удаляем слушатель при размонтировании
+      window.removeEventListener('blur', handleWindowBlur);
     };
-  }, [toolbarMeta, isLoading, isSaveDisabled, statusFilter, onStatusFilterChange, onSaveClick, onBackClick, onGearClick, onFavoritesClick, onCreateClick, navigate, type, isAdminOrMaster]);
+  }, [toolbarMeta, isLoading, statusFilter, onStatusFilterChange, onBackClick, onGearClick, onFavoritesClick, onCreateClick, navigate, type, isAdminOrMaster]);
 
   const renderShortcutBadge = useCallback((itemIndex: number, item: ToolbarItemMeta) => {
     if (!isCtrlPressed) return null;
@@ -322,7 +310,7 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
             onChange={onSearchChange}
             placeholder="Поиск..."
             ruFields={ruFields}
-            operators={['>=', '<=', '!=', '=', '>', '<']}  // ✅ порядок важен!
+            operators={['>=', '<=', '!=', '=', '>', '<']}
             rowsData={rowsData}
             ruToEnMap={ruToEnMap}
             resultsCount={filteredRowsCount}
@@ -334,7 +322,6 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
             }}
           />
 
-          {/* 🔘 Info-кнопка */}
           <button
             ref={helpButtonRef}
             className={styles.infoButton}
@@ -347,27 +334,14 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
             i
           </button>
 
-          {/* 📚 Всплывающая справка */}
           {isHelpOpen && renderHelpContent()}
 
           {renderShortcutBadge(3, toolbarMeta[3])}
         </div>
 
-        {/* 5. Сохранить */}
-        <div className={styles.toolbarItemWrapper}>
-          <FilledColorButton
-            onClick={onSaveClick}
-            disabled={isSaveDisabled || isLoading}
-            mainColor="#ffffff"
-            additionalColor="#f39c12"
-            width="110px"
-          >
-            Сохранить
-          </FilledColorButton>
-          {renderShortcutBadge(4, toolbarMeta[4])}
-        </div>
+        {/* ✅ УБРАНО: Кнопка "Сохранить" */}
 
-        {/* 6. Фильтр статуса */}
+        {/* 5. Фильтр статуса */}
         <div className={styles.toolbarItemWrapper}>
           <StatusFilterButton
             value={statusFilter}
@@ -375,10 +349,10 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
             mainColor="#ffffff"
             additionalColor="#3498db"
           />
-          {renderShortcutBadge(5, toolbarMeta[5])}
+          {renderShortcutBadge(4, toolbarMeta[4])}
         </div>
 
-        {/* 7. Schema Editor */}
+        {/* 6. Schema Editor */}
         {objectType && (
           <div className={styles.toolbarItemWrapper}>
             <FilledColorButton
@@ -390,17 +364,17 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
             >
               {objectType}
             </FilledColorButton>
-            {renderShortcutBadge(6, toolbarMeta[6])}
+            {renderShortcutBadge(5, toolbarMeta[5])}
           </div>
         )}
 
-        {/* 8. Создать */}
+        {/* 7. Создать */}
         <div className={styles.toolbarItemWrapper}>
           <FilledColorButton onClick={onCreateClick} width="110px" disabled={isLoading}>Создать</FilledColorButton>
-          {renderShortcutBadge(objectType ? 7 : 6, toolbarMeta[objectType ? 7 : 6])}
+          {renderShortcutBadge(objectType ? 6 : 5, toolbarMeta[objectType ? 6 : 5])}
         </div>
 
-        {/* ✅ Пагинация — стильные стрелки */}
+        {/* Пагинация */}
         {paginationEnabled && totalPages > 1 && onPageChange && (
           <div className={styles.paginationContainer}>
             <button
@@ -431,7 +405,7 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
       {isCtrlPressed && (
         <div className={styles.shortcutHint}>
           <div className={styles.hintRow}>
-            <span className={styles.hintKey}>Ctrl</span> + <span className={styles.hintKey}>1–8</span> — выбрать
+            <span className={styles.hintKey}>Ctrl</span> + <span className={styles.hintKey}>1–7</span> — выбрать
           </div>
           <div className={styles.hintRow}>
             <span className={styles.hintKey}>Ctrl</span> + <span className={styles.hintKey}>/</span> — смотреть список горячих клавиш

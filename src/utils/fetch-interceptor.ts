@@ -1,4 +1,4 @@
-import { getAccessToken } from '@services/AuthService';
+import { getAccessToken, logout } from '@services/AuthService';
 
 export function setupFetchInterceptor() {
   if (typeof window === 'undefined') return;
@@ -30,21 +30,40 @@ export function setupFetchInterceptor() {
       const response = await originalFetch(input, {
         ...init,
         headers,
-        credentials: 'include' // ВАЖНО: отправляем cookies с каждым запросом
+        credentials: 'include'
       });
       
+      // Обработка 401 - сессия истекла или токен невалиден
       if (response.status === 401 && !isPublic) {
         console.warn('Обнаружена 401 ошибка');
+        await handleUnauthorized();
+      }
+      
+      // Обработка 403 - доступ запрещён или аккаунт заблокирован
+      if (response.status === 403 && !isPublic) {
+        console.warn('Обнаружена 403 ошибка');
         
-        if (window.location.pathname !== '/login' && !isRedirecting) {
-          isRedirecting = true;
-          console.warn('Сессия истекла. Перенаправляем на /login...');
+        // Пытаемся определить тип ошибки из тела ответа
+        try {
+          const errorData = await response.clone().json();
+          const errorMessage = errorData?.message || errorData?.title || '';
           
-          // Сохраняем текущий путь для возврата после логина
-          const currentPath = window.location.pathname + window.location.search;
-          const returnUrl = encodeURIComponent(currentPath);
-          
-          window.location.href = `/login?returnUrl=${returnUrl}`;
+          // Если это блокировка аккаунта
+          if (
+            errorMessage.includes('заблокирован') ||
+            errorMessage.includes('suspended') ||
+            errorMessage.includes('AccountSuspended')
+          ) {
+            console.warn('Аккаунт заблокирован. Выполняем принудительный logout...');
+            await handleAccountSuspended();
+          } else {
+            // Обычный 403 (доступ запрещён к ресурсу)
+            console.warn('Доступ запрещён к ресурсу');
+            // Не делаем редирект — пусть компонент сам обработает
+          }
+        } catch {
+          // Не удалось распарсить JSON — считаем обычной ошибкой доступа
+          console.warn('Доступ запрещён (не удалось прочитать ответ)');
         }
       }
       
@@ -54,4 +73,38 @@ export function setupFetchInterceptor() {
       throw error;
     }
   };
+
+  // Обработка 401 - истечение сессии
+  async function handleUnauthorized() {
+    if (window.location.pathname === '/login' || isRedirecting) {
+      return;
+    }
+    
+    isRedirecting = true;
+    console.warn('Сессия истекла. Перенаправляем на /login...');
+    
+    const currentPath = window.location.pathname + window.location.search;
+    const returnUrl = encodeURIComponent(currentPath);
+    
+    // Очищаем сессию
+    await logout();
+    
+    window.location.href = `/login?returnUrl=${returnUrl}`;
+  }
+
+  // Обработка 403 - блокировка аккаунта
+  async function handleAccountSuspended() {
+    if (window.location.pathname === '/login' || isRedirecting) {
+      return;
+    }
+    
+    isRedirecting = true;
+    console.warn('Аккаунт заблокирован. Перенаправляем на /login с ошибкой...');
+    
+    // Очищаем сессию
+    await logout();
+    
+    // Редиректим с параметром ошибки
+    window.location.href = `/login?error=suspended`;
+  }
 }

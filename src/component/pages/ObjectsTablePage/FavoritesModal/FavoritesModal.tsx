@@ -14,7 +14,11 @@ interface FavoritesModalProps {
   type?: string;
   onSelect: (query: string) => void;
   onDelete: (id: number) => Promise<void>;
-  onUpdate?: (id: number, name: string, body: string) => Promise<void>;
+  onUpdate?: (id: number, name: string, body: string) => void;
+  // ✅ НОВОЕ: текущий запрос из поисковой строки
+  currentQuery?: string;
+  // ✅ НОВОЕ: функция сохранения нового запроса
+  onSaveNewQuery?: (name: string, body: string) => Promise<void>;
 }
 
 const ORDER_STORAGE_KEY = 'favorites_order';
@@ -28,11 +32,16 @@ const FavoritesModal: React.FC<FavoritesModalProps> = ({
   onSelect,
   onDelete,
   onUpdate,
+  currentQuery = '',
+  onSaveNewQuery,
 }) => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [mousedownTarget, setMousedownTarget] = useState<'backdrop' | 'content' | null>(null);
+  
+  // ✅ НОВОЕ: состояние для имени нового запроса
+  const [newQueryName, setNewQueryName] = useState('');
 
   // Загрузка порядка из localStorage
   useEffect(() => {
@@ -44,20 +53,19 @@ const FavoritesModal: React.FC<FavoritesModalProps> = ({
     }
   }, [isOpen, type]);
 
-   useEffect(() => {
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') {
-          e.preventDefault();
-          onClose();
-        }
-      };
-         document.addEventListener('keydown', handleKeyDown);
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  });
-  
-  
+  }, [onClose]);
+
   // Сохранение порядка
   const saveOrder = (updatedFavorites: FavoriteQuery[]) => {
     if (!type) return;
@@ -68,33 +76,45 @@ const FavoritesModal: React.FC<FavoritesModalProps> = ({
   const handleEdit = (id: number) => setEditingId(id);
   const handleCancelEdit = () => setEditingId(null);
 
-  // FavoritesModal.tsx
-
-const handleSave = async (id: number, name: string, body: string) => {
-  if (!type) {
-    console.error('Type не передан в модальное окно');
-    return;
-  }
-
-  setIsLoading(true);
-  try {
-    // 👈 Единственный вызов API — с типом
-    await updateFavoriteQuery(id, name, body, type);
-    
-    // 👈 onUpdate — только для локального обновления стейта у родителя
-    if (onUpdate) {
-      onUpdate(id, name, body);
+  const handleSave = async (id: number, name: string, body: string) => {
+    if (!type) {
+      console.error('Type не передан в модальное окно');
+      return;
     }
-    
-    setEditingId(null);
-  } catch (error) {
-    console.error('Ошибка сохранения:', error);
-    alert('Не удалось сохранить изменения');
-    throw error;
-  } finally {
-    setIsLoading(false);
-  }
-};
+
+    setIsLoading(true);
+    try {
+      await updateFavoriteQuery(id, name, body, type);
+      
+      if (onUpdate) {
+        onUpdate(id, name, body);
+      }
+      
+      setEditingId(null);
+    } catch (error) {
+      console.error('Ошибка сохранения:', error);
+      alert('Не удалось сохранить изменения');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ✅ НОВОЕ: сохранение нового запроса
+  const handleSaveNewQuery = async () => {
+    if (!newQueryName.trim() || !currentQuery.trim() || !onSaveNewQuery) return;
+
+    setIsLoading(true);
+    try {
+      await onSaveNewQuery(newQueryName.trim(), currentQuery.trim());
+      setNewQueryName(''); // Очищаем поле после сохранения
+    } catch (error) {
+      console.error('Ошибка сохранения нового запроса:', error);
+      alert('Не удалось сохранить запрос');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleDeleteClick = (id: number) => setDeleteConfirmationId(id);
 
@@ -113,7 +133,6 @@ const handleSave = async (id: number, name: string, body: string) => {
     }
   };
 
-
   const handleCancelDelete = () => setDeleteConfirmationId(null);
 
   const handleMove = async (fromIndex: number, toIndex: number) => {
@@ -124,10 +143,7 @@ const handleSave = async (id: number, name: string, body: string) => {
 
     setIsLoading(true);
     try {
-      // Если на бэке есть метод reorder — вызываем его
-      // Если нет — просто сохраняем порядок локально в localStorage
       saveOrder(newFavorites);
-      // Обновляем состояние через onUpdate если нужно
       if (onUpdate) {
         // Можно отправить обновлённый список, если бэк поддерживает
       }
@@ -173,6 +189,9 @@ const handleSave = async (id: number, name: string, body: string) => {
 
   if (!isOpen) return null;
 
+  // ✅ Проверяем, есть ли текущий запрос для отображения блока сохранения
+  const hasCurrentQuery = currentQuery.trim().length > 0;
+
   return ReactDOM.createPortal(
     <>
       <div
@@ -186,7 +205,6 @@ const handleSave = async (id: number, name: string, body: string) => {
           onMouseUp={handleContentMouseUp}
           onClick={(e) => e.stopPropagation()}
         >
-
           <button
             className={styles.resetButton}
             onClick={onClose}
@@ -201,6 +219,36 @@ const handleSave = async (id: number, name: string, body: string) => {
           <h2 className={styles.modalTitle}>
             {`Избранное${title ? `: ${title}` : ''}`}
           </h2>
+
+          {/* ✅ НОВОЕ: Блок сохранения текущего запроса */}
+          {hasCurrentQuery && onSaveNewQuery && (
+            <div className={styles.saveNewQuerySection}>
+              <h3 className={styles.saveNewQueryTitle}>Сохранить текущий запрос</h3>
+              <div className={styles.saveNewQueryPreview}>
+                <span className={styles.previewLabel}>Запрос:</span>
+                <span className={styles.previewText}>«{currentQuery}»</span>
+              </div>
+              <div className={styles.saveNewQueryForm}>
+                <input
+                  type="text"
+                  value={newQueryName}
+                  onChange={(e) => setNewQueryName(e.target.value)}
+                  placeholder="Введите название..."
+                  className={styles.saveNewQueryInput}
+                  maxLength={100}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveNewQuery}
+                  disabled={!newQueryName.trim() || isLoading}
+                  className={styles.saveNewQueryButton}
+                >
+                  {isLoading ? 'Сохранение...' : 'Сохранить'}
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className={styles.favoritesList}>
             {favorites.length === 0 ? (

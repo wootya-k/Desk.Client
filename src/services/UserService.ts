@@ -11,6 +11,7 @@ export interface User {
   lastName: string;
   patronymic?: string;
   position: string;
+  positionPreview?: string;
   role: UserRole;
   organization: string;
   telephone?: string;
@@ -68,7 +69,7 @@ const handleApiError = async (response: Response, context: string): Promise<neve
     case 400:
       throw new UserApiError(`Ошибка валидации: ${details}`, 400, details);
     case 401:
-      throw new UserApiError('Нет прав доступа', 401, details);
+      throw new UserApiError('Нет прав доступа или требуется повторный вход', 401, details);
     case 403:
       throw new UserApiError('Доступ запрещён', 403, details);
     case 404:
@@ -160,11 +161,12 @@ export const createUser = async (request: CreateUserRequest): Promise<User> => {
 /**
  * Обновить пользователя
  * PUT /api/users/{login}
+ * Возвращает обновлённого пользователя
  */
 export const updateUser = async (
   login: string,
   request: UpdateUserRequest
-): Promise<void> => {
+): Promise<User> => {
   try {
     const url = await buildUrl(`/api/users/${encodeURIComponent(login)}`);
     const response = await fetch(url, {
@@ -176,7 +178,8 @@ export const updateUser = async (
     if (!response.ok) {
       await handleApiError(response, 'Ошибка при обновлении пользователя');
     }
-    // 204 No Content — успех
+
+    return await response.json();
   } catch (error) {
     if (error instanceof UserApiError) throw error;
     console.error('[updateUser] Ошибка:', error);
@@ -204,23 +207,19 @@ export const deleteUser = async (login: string): Promise<void> => {
 };
 
 /**
- * Заморозить/разморозить пользователя
+ * Переключить статус блокировки пользователя (заморозить/разморозить)
  * PATCH /api/users/{login}/suspend
+ * Бэкенд сам инвертирует текущий статус — тело запроса не нужно
  */
-export const suspendUser = async (
-  login: string,
-  isSuspended: boolean
-): Promise<void> => {
+export const suspendUser = async (login: string): Promise<void> => {
   try {
     const url = await buildUrl(`/api/users/${encodeURIComponent(login)}/suspend`);
     const response = await fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isSuspended })
+      method: 'PATCH'
     });
 
     if (!response.ok) {
-      await handleApiError(response, 'Ошибка при изменении статуса');
+      await handleApiError(response, 'Ошибка при изменении статуса блокировки');
     }
   } catch (error) {
     if (error instanceof UserApiError) throw error;
@@ -232,9 +231,11 @@ export const suspendUser = async (
 /**
  * Сменить пароль пользователя
  * PATCH /api/users/{login}/change-password
+ * Отправляем старый и новый пароль (бэкенд проверяет старый)
  */
 export const changePassword = async (
   login: string,
+  oldPassword: string,
   newPassword: string
 ): Promise<void> => {
   try {
@@ -242,7 +243,7 @@ export const changePassword = async (
     const response = await fetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: newPassword })
+      body: JSON.stringify({ oldPassword, newPassword })
     });
 
     if (!response.ok) {
@@ -256,26 +257,25 @@ export const changePassword = async (
 };
 
 /**
- * Сбросить пароль (отправка на почту)
+ * Сбросить пароль (администратором, отправка на почту)
  * POST /api/users/{login}/reset-password
+ * Бэкенд принимает [FromBody] string — отправляем JSON-строку
  */
 export const resetPassword = async (
   login: string,
   email: string
-): Promise<{ message: string }> => {
+): Promise<void> => {
   try {
     const url = await buildUrl(`/api/users/${encodeURIComponent(login)}/reset-password`);
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mail: email })
+      body: JSON.stringify(email)
     });
 
     if (!response.ok) {
       await handleApiError(response, 'Ошибка при сбросе пароля');
     }
-
-    return await response.json();
   } catch (error) {
     if (error instanceof UserApiError) throw error;
     console.error('[resetPassword] Ошибка:', error);
@@ -286,6 +286,7 @@ export const resetPassword = async (
 /**
  * Сгенерировать случайный пароль на сервере
  * POST /api/users/{login}/generate-password
+ * Бэкенд возвращает { newPassword: string }
  */
 export const generatePasswordOnServer = async (login: string): Promise<string> => {
   try {
@@ -297,7 +298,7 @@ export const generatePasswordOnServer = async (login: string): Promise<string> =
     }
 
     const data = await response.json();
-    return data.password;
+    return data.newPassword;
   } catch (error) {
     if (error instanceof UserApiError) throw error;
     console.error('[generatePasswordOnServer] Ошибка:', error);
@@ -318,7 +319,6 @@ export const generatePasswordClient = (length: number = 12): string => {
   const special = '!@#$%^&*';
   const all = lower + upper + digits + special;
 
-  // Гарантируем наличие символов каждого типа
   const pick = (chars: string) => chars[Math.floor(Math.random() * chars.length)];
   let password = pick(lower) + pick(upper) + pick(digits) + pick(special);
 
@@ -326,7 +326,6 @@ export const generatePasswordClient = (length: number = 12): string => {
     password += pick(all);
   }
 
-  // Перемешиваем
   return password
     .split('')
     .sort(() => Math.random() - 0.5)

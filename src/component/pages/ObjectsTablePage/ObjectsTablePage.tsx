@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import ReactDOM from 'react-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import ObjectEditModal from './ObjectEditModal/ObjectEditModal';
 import ObjectTableComponent from './ObjectsTableComponent/ObjectsTableComponent';
 import ColumnSettingsModal from './ColumnSettingsModal/ColumnSettingsModal';
@@ -9,14 +9,13 @@ import { fetchAllObjects, restoreObjectById, deleteObjectById } from '@services/
 import { fetchFieldTitlesById } from '@services/TableService';
 import DeleteConfirmationModal from '@shared/DeleteConfirmationModal/DeleteConfirmationModal';
 import FavoritesModal from './FavoritesModal/FavoritesModal';
-import { updateFavoriteQuery, getFavoriteQueries, saveFavoriteQuery, deleteFavoriteQuery, SavedQuery } from '@services/QueryService';
+import { getFavoriteQueries, saveFavoriteQuery, deleteFavoriteQuery, SavedQuery } from '@services/QueryService';
 import { parseSearchQuery, checkRowAgainstConditionGroups } from 'utils/searchUtils';
 import { setExpiringItem, getExpiringItem } from 'utils/LocalStorageUtils';
 import { calculateAge, getRetirementAge } from 'utils/employeeUtils';
 import styles from './ObjectsTablePage.module.css';
 import RestoreConfirmationModal from '@shared/RestoreConfirmationModal/RestoreConfirmationModal';
 import FilledColorButton from '@commons/FilledColorButton/FilledColorButton';
-import SaveQueryModal from './SaveQueryModal/SaveQueryModal';
 
 interface FetchObjectItem {
   id: string;
@@ -103,13 +102,13 @@ const loadPaginationConfig = (tableType: string): PaginationConfig | null => {
 
 const addComputedColumns = (columns: ColumnConfig[], tableType: string): ColumnConfig[] => {
   if (tableType !== 'employee') return columns;
-  
+
   const hasAgeColumn = columns.some(col => col.accessor === 'computed_age');
-  
+
   const result = [...columns];
-  
+
   if (!hasAgeColumn) {
-    const birthDateIndex = result.findIndex(col => 
+    const birthDateIndex = result.findIndex(col =>
       col.accessor === 'date_of_birth' || col.title.toLowerCase().includes('дата рождения')
     );
     const ageColumn: ColumnConfig = {
@@ -125,17 +124,17 @@ const addComputedColumns = (columns: ColumnConfig[], tableType: string): ColumnC
       result.unshift(ageColumn);
     }
   }
-  
+
   const surnameIndex = result.findIndex(col => col.accessor === 'last_name');
   if (surnameIndex !== -1 && !result[surnameIndex].computeType) {
     result[surnameIndex] = { ...result[surnameIndex], isComputed: true, computeType: 'surname' };
   }
-  
+
   const milCommIndex = result.findIndex(col => col.accessor === 'military_commissariat');
   if (milCommIndex !== -1 && !result[milCommIndex].computeType) {
     result[milCommIndex] = { ...result[milCommIndex], isComputed: true, computeType: 'militaryCommission' };
   }
-  
+
   return result;
 };
 
@@ -167,34 +166,24 @@ const ObjectsTablePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const [paginationConfig, setPaginationConfig] = useState<PaginationConfig>({ enabled: true, rowsPerPage: 15 });
   const [currentPage, setCurrentPage] = useState(1);
 
-  const handleSaveClick = useCallback(() => { if (!searchTerm.trim()) return; setIsSaveModalOpen(true); }, [searchTerm]);
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   }, []);
+  
   const handleBrokenRefClick = useCallback((uuid: string) => {
     navigator.clipboard.writeText(uuid).then(() => showToast(`Ссылка скопирована: ${uuid}`, 'success'))
       .catch(() => showToast('Не удалось скопировать ссылку', 'error'));
   }, [showToast]);
 
-  const handleConfirmSave = useCallback(async (name: string) => {
-    if (!type) return;
-    try {
-      await saveFavoriteQuery(type, name, searchTerm);
-      setIsSaveModalOpen(false);
-      const queries = await getFavoriteQueries(type);
-      setSavedQueries(queries);
-    } catch (err) { console.error('Ошибка сохранения запроса:', err); alert('Не удалось сохранить запрос'); }
-  }, [type, searchTerm]);
-
   const openRestoreModal = useCallback((id: string) => { setObjectToRestore({ id }); setIsRestoreModalOpen(true); }, []);
+  
   const handleConfirmRestore = useCallback(async () => {
     if (!objectToRestore) return;
     try {
@@ -203,11 +192,13 @@ const ObjectsTablePage: React.FC = () => {
     } catch (err) { console.error('Ошибка восстановления:', err); }
     finally { setIsRestoreModalOpen(false); setObjectToRestore(null); }
   }, [objectToRestore]);
+  
   const handleCancelRestore = useCallback(() => { setIsRestoreModalOpen(false); setObjectToRestore(null); }, []);
 
   const handleUpdateFavoriteQuery = useCallback((id: number, name: string, body: string) => {
     setSavedQueries(prev => prev.map(q => q.id === id ? { ...q, name, body } : q));
   }, []);
+  
   const handleReorderFavoriteQuery = useCallback(async (id: number, newIndex: number) => {
     try {
       setSavedQueries(prev => {
@@ -223,14 +214,37 @@ const ObjectsTablePage: React.FC = () => {
   const filteredRows = useMemo(() => {
     const raw = searchTerm.trim();
     if (!raw) return rows;
+
     const groups = parseSearchQuery(raw.toLowerCase());
-    if (!groups.length) return rows.filter(r => Object.values(r).some(val => String(val).toLowerCase().includes(raw.toLowerCase())));
+
+    if (!groups.length) {
+      const words: string[] = [];
+      const regex = /"([^"]+)"|(\S+)/g;
+      let match;
+      const lowerRaw = raw.toLowerCase();
+
+      while ((match = regex.exec(lowerRaw)) !== null) {
+        words.push(match[1] || match[2]);
+      }
+
+      if (words.length === 0) return rows;
+
+      return rows.filter(row =>
+        words.every(word =>
+          Object.values(row).some(val => {
+            if (val === null || val === undefined) return false;
+            return String(val).toLowerCase().includes(word);
+          })
+        )
+      );
+    }
+
     return rows.filter(r => checkRowAgainstConditionGroups(r, groups, ruToEnMap));
   }, [searchTerm, rows, ruToEnMap]);
 
   const sortedRows = useMemo(() => {
     if (!sortColumn) return filteredRows;
-    
+
     if (sortColumn === 'computed_age') {
       return [...filteredRows].sort((a, b) => {
         const ageA = a['computed_age'] as number | null | undefined;
@@ -240,7 +254,7 @@ const ObjectsTablePage: React.FC = () => {
         return sortDirection === 'asc' ? ageA - ageB : ageB - ageA;
       });
     }
-    
+
     return [...filteredRows].sort((a, b) => {
       const aVal = a[sortColumn], bVal = b[sortColumn];
       if (aVal == null && bVal == null) return 0;
@@ -304,14 +318,43 @@ const ObjectsTablePage: React.FC = () => {
   }, [filteredRows, isLoading, error, paginationConfig]);
 
   const handleFavoritesClick = useCallback(async () => {
-    try { const queries = await getFavoriteQueries(type); setSavedQueries(queries); setIsFavoritesModalOpen(true); }
-    catch (err) { console.error('Ошибка загрузки избранного:', err); }
+    try { 
+      const queries = await getFavoriteQueries(type); 
+      setSavedQueries(queries); 
+      setIsFavoritesModalOpen(true); 
+    } catch (err) { 
+      console.error('Ошибка загрузки избранного:', err); 
+    }
+  }, [type]);
+  
+  const handleSelectFavoriteQuery = useCallback((query: string) => { 
+    setSearchTerm(query); 
+    setIsFavoritesModalOpen(false); 
   }, []);
-  const handleSelectFavoriteQuery = useCallback((query: string) => { setSearchTerm(query); setIsFavoritesModalOpen(false); }, []);
+  
   const handleDeleteFavoriteQuery = useCallback(async (id: number) => {
-    try { await deleteFavoriteQuery(id); setSavedQueries(prev => prev.filter(q => q.id !== id)); }
-    catch (err) { console.error('Ошибка удаления запроса:', err); }
+    try { 
+      await deleteFavoriteQuery(id); 
+      setSavedQueries(prev => prev.filter(q => q.id !== id)); 
+    } catch (err) { 
+      console.error('Ошибка удаления запроса:', err); 
+    }
   }, []);
+
+  // ✅ НОВОЕ: функция сохранения нового запроса из модалки
+  const handleSaveNewFavoriteQuery = useCallback(async (name: string, body: string) => {
+    if (!type) return;
+    try {
+      await saveFavoriteQuery(type, name, body);
+      const queries = await getFavoriteQueries(type);
+      setSavedQueries(queries);
+      showToast('Запрос сохранён', 'success');
+    } catch (err) {
+      console.error('Ошибка сохранения запроса:', err);
+      showToast('Не удалось сохранить запрос', 'error');
+      throw err;
+    }
+  }, [type, showToast]);
 
   const createDefaultColumns = useCallback((fieldTitles: Record<string, string>): ColumnConfig[] =>
     Object.entries(fieldTitles).map(([eng, rus]) => ({ title: rus, accessor: eng, visible: true })), []);
@@ -341,8 +384,8 @@ const ObjectsTablePage: React.FC = () => {
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
         const savedConfig = loadTableConfig(type);
-        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultCols.map(col => ({ ...col }));
-        
+        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultColumns.map(col => ({ ...col }));
+
         initialColumns = addComputedColumns(initialColumns, type);
 
         const isNarrow = initialColumns.filter(col => col.visible).length <= 12;
@@ -359,15 +402,15 @@ const ObjectsTablePage: React.FC = () => {
         const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => {
           const parsed = JSON.parse(item.value);
           const age = calculateAge(String(parsed['date_of_birth'] || ''));
-          return { 
-            ...parsed, 
-            id: item.id, 
+          return {
+            ...parsed,
+            id: item.id,
             status: item.status,
             computed_age: age
           };
         });
-        setColumns(initialColumns); 
-        setRows(parsedRows); 
+        setColumns(initialColumns);
+        setRows(parsedRows);
         setIsLoading(false);
       } catch (err) {
         console.error(' Ошибка загрузки:', err);
@@ -384,10 +427,12 @@ const ObjectsTablePage: React.FC = () => {
       await deleteObjectById(id);
     } catch (err) { console.error('Ошибка удаления:', err); setRows(prev => [...prev, row]); }
   }, []);
+  
   const openDeleteModal = useCallback((id: string, row: Row) => {
     if (isShiftPressed) { performImmediateDelete(id, row); return; }
     setObjectToDelete({ id, row }); setIsDeleteModalOpen(true);
   }, [isShiftPressed, performImmediateDelete]);
+  
   const handleConfirmDelete = useCallback(async () => {
     if (!objectToDelete) return;
     try {
@@ -396,11 +441,17 @@ const ObjectsTablePage: React.FC = () => {
     } catch (err) { console.error('Ошибка удаления:', err); setRows(prev => [...prev, objectToDelete.row]); }
     finally { setIsDeleteModalOpen(false); setObjectToDelete(null); }
   }, [objectToDelete]);
+  
   const handleCancelDelete = useCallback(() => { setIsDeleteModalOpen(false); setObjectToDelete(null); }, []);
+  
   const handleEdit = useCallback((rowId: string) => { setEditingObjectId(rowId); setIsEditModalOpen(true); }, []);
+  
   const closeEditModal = useCallback(() => { setIsEditModalOpen(false); setEditingObjectId(null); }, []);
+  
   const handleBackClick = useCallback(() => navigate('/'), [navigate]);
+  
   const handleCreateClick = useCallback(() => setIsNewObjectModalOpen(true), []);
+  
   const handleGearClick = useCallback(() => setIsModalOpen(true), []);
 
   const handleApplySettings = useCallback((updatedColumns: ColumnConfig[], pagination?: PaginationConfig) => {
@@ -427,9 +478,6 @@ const ObjectsTablePage: React.FC = () => {
     saveTableConfig(type, newColumns); setColumns(newColumns);
   }, [type]);
 
-  const conditionGroups = useMemo(() => parseSearchQuery(searchTerm.trim().toLowerCase()), [searchTerm]);
-  const isSaveDisabled = !(conditionGroups.length > 0 && filteredRows.length > 0);
-  
   const ruFields = useMemo(() => {
     const fields = Object.keys(ruToEnMap);
     if (type === 'employee' && !fields.some(f => f.toLowerCase() === 'возраст')) {
@@ -453,20 +501,20 @@ const ObjectsTablePage: React.FC = () => {
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
         const savedConfig = loadTableConfig(type);
-        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultCols.map(col => ({ ...col }));
+        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultColumns.map(col => ({ ...col }));
         initialColumns = addComputedColumns(initialColumns, type);
         const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => {
           const parsed = JSON.parse(item.value);
           const age = calculateAge(String(parsed['date_of_birth'] || ''));
-          return { 
-            ...parsed, 
-            id: item.id, 
+          return {
+            ...parsed,
+            id: item.id,
             status: item.status,
             computed_age: age
           };
         });
-        setColumns(initialColumns); 
-        setRows(parsedRows); 
+        setColumns(initialColumns);
+        setRows(parsedRows);
         setIsLoading(false);
       } catch (err) {
         console.error('Ошибка перезагрузки данных:', err);
@@ -486,7 +534,7 @@ const ObjectsTablePage: React.FC = () => {
         <TableHeaderToolbar
           objectType={objectType} type={type} searchTerm={searchTerm} onSearchChange={setSearchTerm}
           onBackClick={handleBackClick} onCreateClick={handleCreateClick} onGearClick={handleGearClick}
-          onFavoritesClick={handleFavoritesClick} onSaveClick={handleSaveClick} isSaveDisabled={isSaveDisabled}
+          onFavoritesClick={handleFavoritesClick}
           ruFields={ruFields} rowsData={rows} ruToEnMap={ruToEnMap} statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter} filteredRowsCount={filteredRows.length}
           error={error != null || isLoading} currentPage={currentPage} totalPages={totalPages}
@@ -541,11 +589,28 @@ const ObjectsTablePage: React.FC = () => {
 
       {isDeleteModalOpen && ReactDOM.createPortal(<DeleteConfirmationModal preview="Вы уверены, что хотите удалить этот объект?" onConfirm={handleConfirmDelete} onCancel={handleCancelDelete} />, document.getElementById('modal-root')!)}
       {isModalOpen && ReactDOM.createPortal(<ColumnSettingsModal initialColumns={columns} defaultColumns={defaultColumns} initialPagination={paginationConfig} onApply={handleApplySettings} onReset={handleResetSettings} onCancel={() => setIsModalOpen(false)} />, document.getElementById('modal-root')!)}
-      {isFavoritesModalOpen && ReactDOM.createPortal(<FavoritesModal isOpen={isFavoritesModalOpen} onClose={() => setIsFavoritesModalOpen(false)} favorites={savedQueries} onSelect={handleSelectFavoriteQuery} onDelete={handleDeleteFavoriteQuery} title={objectType} type={type} />, document.getElementById('modal-root')!)}
+      
+      {/* ✅ ИЗМЕНЕНО: передаем currentQuery и onSaveNewQuery в FavoritesModal */}
+      {isFavoritesModalOpen && ReactDOM.createPortal(
+        <FavoritesModal 
+          isOpen={isFavoritesModalOpen} 
+          onClose={() => setIsFavoritesModalOpen(false)} 
+          favorites={savedQueries} 
+          onSelect={handleSelectFavoriteQuery} 
+          onDelete={handleDeleteFavoriteQuery} 
+          onUpdate={handleUpdateFavoriteQuery}
+          title={objectType} 
+          type={type}
+          currentQuery={searchTerm}
+          onSaveNewQuery={handleSaveNewFavoriteQuery}
+        />, 
+        document.getElementById('modal-root')!
+      )}
+      
       {isEditModalOpen && type && editingObjectId && <ObjectEditModal isOpen={isEditModalOpen} onClose={closeEditModal} type={type} id={editingObjectId} onSaveSuccess={handleSaveSuccess} title="Редактирование объекта" isDeadObject={rows.find(r => r.id === editingObjectId)?.status === false} />}
       {isNewObjectModalOpen && type && <ObjectEditModal isOpen={isNewObjectModalOpen} onClose={() => setIsNewObjectModalOpen(false)} type={type} onSaveSuccess={handleSaveSuccess} title="Создание нового объекта" />}
       {isRestoreModalOpen && ReactDOM.createPortal(<RestoreConfirmationModal onConfirm={handleConfirmRestore} onCancel={handleCancelRestore} />, document.getElementById('modal-root')!)}
-      <SaveQueryModal isOpen={isSaveModalOpen} onClose={() => setIsSaveModalOpen(false)} onSave={handleConfirmSave} preview={searchTerm} />
+      
       {toast && <div className={`${styles.toast} ${styles[toast.type]}`}><span className={styles.toastIcon}>{toast.type === 'success' ? '✓' : '✕'}</span><span className={styles.toastMessage}>{toast.message}</span></div>}
     </div>
   );

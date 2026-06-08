@@ -4,61 +4,166 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
   align-items: center;
-  z-index: 1000;
+  justify-content: center;
+  z-index: 1100;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.togglePreviewBtn {
+  position: absolute;
+  top: 0;
+  right: 60px;
+  width: 60px;
+  height: 30px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.1s;
+  z-index: 3;
+}
+
+.togglePreviewBtn .toggleIcon {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  font-family: monospace;
+  color: #39a2cf;
+  transition: color 0.1s;
+}
+
+.togglePreviewBtn:hover {
+  background-color: rgba(36, 132, 185, 0.8);
+}
+
+.togglePreviewBtn:hover .toggleIcon {
+  color: #ffffff;
+}
+
+.togglePreviewBtn:active {
+  background-color: rgba(36, 132, 185, 0.8);
+}
+
+.togglePreviewBtn:active .toggleIcon {
+  color: #ffffff;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modalContent {
-  background: white;
-  border-radius: 8px;
+  position: relative;
+  background-color: white;
+  border-radius: 12px;
   width: 90%;
-  max-width: 500px;
+  max-width: 700px;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease-out;
 }
 
-.modalHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.title {
-  color: #2c3e50;
-  font-weight: 600;
-  font-size: 20px;
-  margin: 0;
-}
-
-.closeButton {
-  background: none;
+.resetButton {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 30px;
+  background: transparent;
   border: none;
-  font-size: 24px;
-  color: #7f8c8d;
   cursor: pointer;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  outline: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background-color 0.1s;
+  z-index: 3;
+  border-top-right-radius: 8px;
 }
 
-.closeButton:hover {
-  background: #f8f9fa;
+/* ✅ По умолчанию: прозрачный фон, красный крестик */
+.resetButton .closeIcon {
+  font-size: 16px;
+  font-weight: 600; /* 🔥 Потолще */
+  line-height: 1;
+  color: #c41e3a; /* Красный крест */
+  transition: color 0.1s;
+}
+
+/* ✅ При наведении: красный фон, БЕЛЫЙ крестик */
+.resetButton:hover {
+  background-color:  #c41e3a;
+}
+
+.resetButton:hover .closeIcon {
+  color: #ffffff; /* Белый крест на красном фоне */
+}
+
+/* ✅ При нажатии: темнее красный */
+.resetButton:active {
+  background-color: #c50b1a;
+}
+
+.resetButton:active .closeIcon {
+  color: #ffffff;
+}
+
+.modalTitle {
+  margin: 0;
+  padding: 24px 64px 20px 24px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #2c3e50;
 }
 
 .formSection {
-  padding: 24px;
+  padding: 20px 24px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .formGroup {
-  margin-bottom: 20px;
+  margin-bottom: 0;
+}
+
+.fullWidthField {
+  grid-column: span 3;
+}
+
+.fioField {
+  grid-column: span 2;
+}
+
+.wideField {
+  grid-column: span 3;
 }
 
 .label {
@@ -71,37 +176,45 @@
 
 .input {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 10px 14px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
   font-size: 14px;
   box-sizing: border-box;
+  transition: border-color 0.2s;
+  background-color: #fff;
 }
 
 .input:hover {
-  outline: none;
-  border-color: #87c1e7;
+  border-color: #bdc3c7;
 }
-
 
 .input:focus {
   outline: none;
   border-color: #3498db;
 }
 
-.staticValue {
-  padding: 10px 12px;
+.input:disabled {
   background-color: #f8f9fa;
-  border-radius: 4px;
-  border: 1px solid #eee;
+  color: #7f8c8d;
+  cursor: not-allowed;
+}
+
+.staticValue {
+  padding: 10px 14px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 2px solid #ecf0f1;
   color: #555;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .hint {
   font-size: 12px;
-  color: #7f8c8d;
-  margin-top: 4px;
+  color: #95a5a6;
+  margin-top: 6px;
+  font-style: italic;
 }
 
 .buttonSection {
@@ -111,5 +224,69 @@
 .mainActions {
   display: flex;
   gap: 12px;
-  justify-content: center;
+  justify-content: flex-end;
+  padding-top: 20px;
+}
+
+.modalContent::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modalContent::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 0 12px 12px 0;
+}
+
+.modalContent::-webkit-scrollbar-thumb {
+  background: #bdc3c7;
+  border-radius: 4px;
+}
+
+.modalContent::-webkit-scrollbar-thumb:hover {
+  background: #95a5a6;
+}
+
+@media (max-width: 768px) {
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .fullWidthField,
+  .fioField,
+  .wideField {
+    grid-column: span 1;
+  }
+  
+  .modalTitle {
+    padding-right: 64px;
+    font-size: 20px;
+  }
+  
+  .mainActions {
+    flex-direction: column;
+  }
+  
+  .mainActions > button {
+    width: 100% !important;
+  }
+}
+
+
+/* Поле пароля на всю ширину формы (6 колонок из 6) */
+.passwordField {
+  grid-column: span 6;
+}
+
+/* Текст ошибки валидации паролей */
+.errorMessage {
+  color: #c41e3a;
+  font-size: 14px;
+  margin-top: 16px;
+  text-align: center;
+  font-weight: 500;
+  background-color: #fdf0f0;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #f8d7da;
 }

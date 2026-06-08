@@ -212,7 +212,7 @@ const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanel
     const handleKeyDown = (typeId: string, panelId: string, index: number, e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             const syntheticEvent = {
-                stopPropagation: () => {},
+                stopPropagation: () => { },
                 ctrlKey: e.ctrlKey,
                 shiftKey: e.shiftKey,
                 metaKey: e.metaKey,
@@ -394,11 +394,20 @@ const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanel
                     y={contextMenu.y}
                     items={[
                         {
-                            label: 'Открыть',
-                            icon: '👁️',
+                            label: 'Открыть в новой вкладке',
+                            onClick: () => {
+                                window.open(
+                                    `/view-objects/${contextMenu.typeId}`,
+                                    '_blank',
+                                    'noopener,noreferrer'
+                                );
+                            },
+                        },
+                        {
+                            label: 'Открыть в этой вкладке',
                             onClick: () => {
                                 const syntheticEvent = {
-                                    stopPropagation: () => {},
+                                    stopPropagation: () => { },
                                     ctrlKey: false,
                                     shiftKey: false,
                                     metaKey: false,
@@ -412,14 +421,19 @@ const DraggableCategoryPanel = forwardRef<HTMLDivElement, DraggableCategoryPanel
                             },
                         },
                         {
-                            label: 'Открыть в новой вкладке',
-                            icon: '🔗',
+                            label: 'Копировать название',
                             onClick: () => {
-                                window.open(
-                                    `/view-objects/${contextMenu.typeId}`,
-                                    '_blank',
-                                    'noopener,noreferrer'
-                                );
+                                const type = types[contextMenu.index];
+                                if (type) {
+                                    navigator.clipboard.writeText(type.name);
+                                }
+                            },
+                        },
+                        {
+                            label: 'Копировать ссылку',
+                            onClick: () => {
+                                const url = `${window.location.origin}/view-objects/${contextMenu.typeId}`;
+                                navigator.clipboard.writeText(url);
                             },
                         },
                     ]}

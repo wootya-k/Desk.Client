@@ -10,8 +10,7 @@ export interface SavedQuery {
 
 export const getFavoriteQueries = async (type?: string): Promise<SavedQuery[]> => {
   const baseUrl = await buildUrl('/api/queries');
-
-  const url = new URL(baseUrl);
+  const url = new URL(baseUrl, window.location.origin);
 
   if (type) {
     url.searchParams.append('type', type);
@@ -37,7 +36,8 @@ export const saveFavoriteQuery = async (
     throw new Error('Запрос не может быть пустым');
   }
 
-  const url = await buildUrl('/api/queries');
+  const baseUrl = await buildUrl('/api/queries');
+  const url = new URL(baseUrl, window.location.origin);
 
   const response = await fetch(url, {
     method: 'POST',
@@ -56,7 +56,8 @@ export const saveFavoriteQuery = async (
 
 // 👇 НОВОЕ: удаление по id
 export const deleteFavoriteQuery = async (id: number): Promise<void> => {
-  const url = await buildUrl(`/api/queries/${id}`);
+  const baseUrl = await buildUrl(`/api/queries/${id}`);
+  const url = new URL(baseUrl, window.location.origin);
   const response = await fetch(url, {
     method: 'DELETE',
     credentials: 'include',
@@ -75,8 +76,9 @@ export const updateFavoriteQuery = async (
   body: string,
   type: string  // 👈 НОВЫЙ обязательный параметр
 ): Promise<void> => {
-  const url = await buildUrl(`/api/queries/${id}`);
-  
+  const baseUrl = await buildUrl(`/api/queries/${id}`);
+  const url = new URL(baseUrl, window.location.origin);
+
   const response = await fetch(url, {
     method: 'PUT',
     credentials: 'include',
@@ -86,7 +88,7 @@ export const updateFavoriteQuery = async (
     // 👈 Отправляем все 3 поля, как ждёт CreateQueryRequest
     body: JSON.stringify({ type, name, body }),
   });
-  
+
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`Ошибка обновления запроса: ${response.statusText} ${text}`);
@@ -96,8 +98,8 @@ export const updateFavoriteQuery = async (
 export const reorderFavoriteQueries = async (
   queries: { id: number; order: number }[]
 ): Promise<void> => {
-  // Если на бэкенде есть поле order/priority
-  const url = await buildUrl('/api/queries/reorder');
+  const baseUrl = await buildUrl('/api/queries/reorder');
+  const url = new URL(baseUrl, window.location.origin);
   const response = await fetch(url, {
     method: 'POST',
     credentials: 'include',

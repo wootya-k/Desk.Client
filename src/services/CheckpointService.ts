@@ -1,7 +1,7 @@
 import { buildUrl } from 'config';
 
 export interface EmployeeChange {
-  changeId: string; 
+  changeId: string;
   militaryCategory: string;
   sequenceNumber: number;
   fullName: string;
@@ -14,22 +14,31 @@ export interface EmployeeChange {
   changedAt: string;
 }
 
+// Вспомогательная функция для сборки URL с query-параметрами
+const buildRequestUrl = async (path: string, params: Record<string, string | number | undefined>) => {
+  const base = await buildUrl(path);
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      searchParams.append(key, String(value));
+    }
+  });
+
+  const query = searchParams.toString();
+  return query ? `${base}?${query}` : base;
+};
+
 export const getEmployeeChanges = async (
   dateFrom?: Date,
   dateTo?: Date,
   normalizeDays: number = 60
 ): Promise<EmployeeChange[]> => {
-  const baseUrl = await buildUrl('/api/checkpoint/json');
-  const url = new URL(baseUrl);
-
-  // Если даты не переданы — бэкенд сам возьмёт последние normalizeDays дней
-  if (dateFrom) {
-    url.searchParams.append('dateFrom', dateFrom.toISOString());
-  }
-  if (dateTo) {
-    url.searchParams.append('dateTo', dateTo.toISOString());
-  }
-  url.searchParams.append('NormalizeWithDefaults', normalizeDays.toString());
+  const url = await buildRequestUrl('/api/checkpoint/json', {
+    dateFrom: dateFrom?.toISOString(),
+    dateTo: dateTo?.toISOString(),
+    NormalizeWithDefaults: normalizeDays,
+  });
 
   const response = await fetch(url, {
     method: 'GET',
@@ -49,13 +58,12 @@ export const exportEmployeeChanges = async (
   format: 'xlsx' | 'xls' | 'ods' = 'xlsx',
   normalizeDays: number = 60
 ): Promise<Blob> => {
-  const baseUrl = await buildUrl('/api/checkpoint/export');
-  const url = new URL(baseUrl);
-
-  url.searchParams.append('dateFrom', dateFrom.toISOString());
-  url.searchParams.append('dateTo', dateTo.toISOString());
-  url.searchParams.append('format', format);
-  url.searchParams.append('NormalizeWithDefaults', normalizeDays.toString());
+  const url = await buildRequestUrl('/api/checkpoint/export', {
+    dateFrom: dateFrom.toISOString(),
+    dateTo: dateTo.toISOString(),
+    format,
+    NormalizeWithDefaults: normalizeDays,
+  });
 
   const response = await fetch(url, {
     method: 'GET',
@@ -83,7 +91,7 @@ export const downloadFile = (blob: Blob, fileName: string) => {
 
 export const deleteEmployeeChange = async (changeId: string): Promise<void> => {
   const url = await buildUrl(`/api/checkpoint/${changeId}`);
-  
+
   const response = await fetch(url, {
     method: 'DELETE',
     credentials: 'include',

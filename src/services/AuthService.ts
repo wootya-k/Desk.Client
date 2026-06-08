@@ -8,6 +8,7 @@ export interface UserDto {
   position: string;
   positionPreview: string;
   role: string;
+  organization: string
 }
 
 interface AuthResponse {
@@ -57,6 +58,10 @@ export const login = async (loginStr: string, password: string): Promise<UserDto
       body: JSON.stringify({ login: loginStr, password }),
     });
 
+    if (response.status === 403) {
+    throw new Error('Ваш аккаунт заблокирован. Обратитесь к администратору.');
+  }
+  
     if (!response.ok) {
       let errorMessage = 'Ошибка авторизации';
       let errorBody = '';

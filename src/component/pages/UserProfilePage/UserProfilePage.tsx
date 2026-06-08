@@ -80,6 +80,7 @@ const UserProfilePage: React.FC = () => {
         <div className={styles.hint}>Логин нельзя изменить</div>
       </div>
       
+      
       <div className={styles.formGroup}>
         <label htmlFor="lastNameInput" className={styles.label}>Фамилия</label>
         <input

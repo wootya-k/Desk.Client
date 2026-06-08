@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react'; // Добавляем Fragment
 import { useNavigate } from 'react-router-dom';
 import {
   getEmployeeChanges,
@@ -149,10 +149,11 @@ const CheckpointPage = () => {
               <th style={{ width: 40 }}></th>
             </tr>
           </thead>
-          <tbody>
+                    <tbody>
             {CATEGORIES.map(cat => (
-              <>
-                <tr key={cat} className={styles.catRow}>
+              // Используем Fragment с key вместо <>
+              <Fragment key={cat}>
+                <tr className={styles.catRow}>
                   <td colSpan={8}>{cat}</td>
                 </tr>
                 {grouped[cat].length === 0 ? (
@@ -178,7 +179,7 @@ const CheckpointPage = () => {
                         <td>{c.changeDescription}</td>
                         <td>
                           <button
-                            onClick={() => handleDelete(c.changeId)}  // ← передаём UUID
+                            onClick={() => handleDelete(c.changeId)}
                             className={`${styles.actionButton} ${styles.deleteButton}`}
                             title="Удалить"
                             type="button"
@@ -190,7 +191,7 @@ const CheckpointPage = () => {
                     );
                   })
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>

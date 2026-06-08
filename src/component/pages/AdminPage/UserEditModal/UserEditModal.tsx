@@ -346,16 +346,17 @@ const UserEditModal: React.FC<Props> = ({
 
           <div className={styles.actions}>
             <FilledColorButton
-              onClick={onCancel}
-              mainColor="#FFFFFF"
-              additionalColor="#95a5a6"
-            >
-              Отмена
-            </FilledColorButton>
-            <FilledColorButton
               onClick={() => handleSubmit(new Event('submit') as any)}
+              mainColor="#ffffff"
+              additionalColor="#f39c12"
             >
               {user ? 'Сохранить' : 'Создать'}
+            </FilledColorButton>
+
+            <FilledColorButton
+              onClick={onCancel}
+            >
+              Отмена
             </FilledColorButton>
           </div>
         </form>
