@@ -44,21 +44,16 @@ export default defineConfig(({ mode, command }) => {
 
     const serverConfig = command === 'serve'
         ? {
-            open: '/',
-            proxy: {
-                '/api': {
-                    target: env.PROXY_URL,
-                    changeOrigin: true,
-                    // УБРАТЬ rewrite — бэкенд ожидает /api/auth/login
-                    secure: false,
-                },
-                '/notificationHub': {
-                    target: env.PROXY_URL,
-                    ws: true,
-                    changeOrigin: true,
-                }
+        open: '/',
+        proxy: {
+            '/api': {
+                target: env.PROXY_URL,
+                changeOrigin: true,
+                secure: false,
+                ws: true
             }
         }
+    }
         : undefined;
 
     const mainConfig = {

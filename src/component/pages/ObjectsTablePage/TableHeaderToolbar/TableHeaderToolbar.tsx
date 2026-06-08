@@ -259,13 +259,13 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
         <h4>💡 Автодополнение (Autocomplete)</h4>
         <table className={styles.helpTable}>
           <thead>
-            <tr><th>Ситуация</th><th>Что предлагается</th></tr>
+            <tr><th>Контекст</th><th>Подсказки</th></tr>
           </thead>
           <tbody>
-            <tr><td>Пустой ввод / после <code>(</code> / <code>и</code> / <code>или</code></td><td>Список полей</td></tr>
-            <tr><td>Введено имя поля + оператор (<code>Класс=</code>)</td><td>Уникальные значения поля</td></tr>
-            <tr><td>Введено полное условие (<code>Класс=Раб</code>)</td><td>Коннекторы: <code>и</code>, <code>или</code>, <code>)</code></td></tr>
-            <tr><td>Частичное значение (<code>Фамилия=Си</code>)</td><td>Значения, содержащие подстроку, надйёт: ВаСИльев и СИдоров</td></tr>
+            <tr><td>Пустой ввод после <code>(</code> <code>и</code> <code>или</code></td><td>Список полей</td></tr>
+            <tr><td>Введено имя поля + оператор <code>Класс=</code></td><td>Уникальные значения поля</td></tr>
+            <tr><td>Введено полное условие <code>Класс=Раб</code></td><td>Коннекторы: <code>и</code> <code>или</code> <code>)</code></td></tr>
+            <tr><td>Частичное значение <code>Фамилия=Си</code></td><td>Значения, содержащие подстроку, надйёт: ВаСИльев и СИдоров</td></tr>
           </tbody>
         </table>
       </div>
@@ -287,7 +287,7 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
           <code>Класс=Специалист</code>
           <code>Возраст&gt;18 и Пол=Мужской</code>
           <code>Класс=Специалист или Класс=Руководитель</code>
-          <code>(Класс=Специалист и Пол=Мужской) или (Класс=Рабочий и Забронирован=Да)</code>
+          <code>Класс=Специалист и Пол=Мужской или Класс=Рабочий и Забронирован=Да</code>
         </div>
       </div>
     </div>
@@ -299,7 +299,7 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
 
         {/* 1. Назад */}
         <div className={styles.toolbarItemWrapper}>
-          <FilledColorButton onClick={onBackClick} disabled={isLoading}>Назад</FilledColorButton>
+          <FilledColorButton width="110px" onClick={onBackClick} disabled={isLoading}>Назад</FilledColorButton>
           {renderShortcutBadge(0, toolbarMeta[0])}
         </div>
 
@@ -322,7 +322,7 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
             onChange={onSearchChange}
             placeholder="Поиск..."
             ruFields={ruFields}
-            operators={['>', '<', '=', '!=']}
+            operators={['>=', '<=', '!=', '=', '>', '<']}  // ✅ порядок важен!
             rowsData={rowsData}
             ruToEnMap={ruToEnMap}
             resultsCount={filteredRowsCount}
@@ -360,6 +360,7 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
             disabled={isSaveDisabled || isLoading}
             mainColor="#ffffff"
             additionalColor="#f39c12"
+            width="110px"
           >
             Сохранить
           </FilledColorButton>
@@ -385,7 +386,7 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
               disabled={!isAdminOrMaster || isLoading}
               mainColor="#ffffff"
               additionalColor="#f39c12"
-              width="150px"
+              width="140px"
             >
               {objectType}
             </FilledColorButton>
@@ -395,7 +396,7 @@ const TableHeaderToolbar: FC<TableHeaderToolbarProps> = ({
 
         {/* 8. Создать */}
         <div className={styles.toolbarItemWrapper}>
-          <FilledColorButton onClick={onCreateClick} disabled={isLoading}>Создать</FilledColorButton>
+          <FilledColorButton onClick={onCreateClick} width="110px" disabled={isLoading}>Создать</FilledColorButton>
           {renderShortcutBadge(objectType ? 7 : 6, toolbarMeta[objectType ? 7 : 6])}
         </div>
 

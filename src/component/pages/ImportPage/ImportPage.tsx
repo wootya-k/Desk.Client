@@ -9,6 +9,7 @@ import { fetchFieldTitlesById } from '@services/TableService';
 import AutocompleteInput from '../ObjectsTablePage/TableHeaderToolbar/AutocompleteInput/AutocompleteInput';
 import { parseSearchQuery, checkRowAgainstConditionGroups } from 'utils/searchUtils';
 import FilledColorButton from '@commons/FilledColorButton/FilledColorButton';
+import { UploadProgress } from 'utils/chunkedUpload';
 import styles from './ImportPage.module.css';
 
 type TabType = 'employees' | 'candidates' | 'subdivisions';
@@ -26,9 +27,11 @@ const ImportPage: React.FC = () => {
     const [sortColumn, setSortColumn] = useState<string | null>(null);
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
     const [isDragActive, setIsDragActive] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dropZoneRef = useRef<HTMLDivElement>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
         if (!preview) return;
@@ -75,6 +78,11 @@ const ImportPage: React.FC = () => {
             return;
         }
 
+        // Отменяем предыдущую загрузку, если была
+        abortControllerRef.current?.abort();
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         setFile(selectedFile);
         setError(null);
         setResult(null);
@@ -83,8 +91,9 @@ const ImportPage: React.FC = () => {
         setSearchTerm('');
         setSortColumn(null);
         setIsLoadingPreview(true);
+        setUploadProgress({ loadedChunks: 0, totalChunks: 0, percent: 0 });
 
-        previewImport(selectedFile)
+        previewImport(selectedFile, setUploadProgress, controller.signal)
             .then(data => {
                 setPreview(data);
                 if (data.employees.length > 0) setActiveTab('employees');
@@ -92,10 +101,13 @@ const ImportPage: React.FC = () => {
                 else if (data.subdivisions.length > 0) setActiveTab('subdivisions');
             })
             .catch(err => {
-                setError(err instanceof Error ? err.message : 'Ошибка при загрузке файла');
+                if (err.name !== 'AbortError') {
+                    setError(err instanceof Error ? err.message : 'Ошибка при загрузке файла');
+                }
             })
             .finally(() => {
                 setIsLoadingPreview(false);
+                setUploadProgress(null);
             });
     };
 
@@ -105,18 +117,13 @@ const ImportPage: React.FC = () => {
     };
 
     const handleConfirm = async () => {
-        if (!preview) return;
+        if (!preview?.fileId) return;
         setIsLoadingConfirm(true);
         setError(null);
         setResult(null);
 
         try {
-            const request = {
-                employees: preview.employees,
-                candidates: preview.candidates,
-                subdivisions: preview.subdivisions,
-            };
-            const res = await confirmImport(request);
+            const res = await confirmImport(preview.fileId);
             setResult(res);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Ошибка при подтверждении импорта');
@@ -143,8 +150,6 @@ const ImportPage: React.FC = () => {
     const currentData = useMemo(() => preview ? preview[activeTab] : [], [preview, activeTab]);
     const currentSchema = schemas[getSchemaType(activeTab)];
 
-    // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: AutocompleteInput ожидает АНГЛИЙСКИЕ ключи в rowsData
-    // Компонент сам делает маппинг через ruToEnMap внутри fieldValuesCache
     const autocompleteRowsData = useMemo(() => {
         return currentData.map(item => item.data);
     }, [currentData]);
@@ -225,7 +230,6 @@ const ImportPage: React.FC = () => {
         }
     };
 
-    // 🔥 Форматирование значений ячеек: даты + boolean
     const renderCellValue = (value: unknown) => {
         if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
             return '';
@@ -240,7 +244,6 @@ const ImportPage: React.FC = () => {
             );
         }
         if (typeof value === 'string') {
-            // Формат даты: YYYY-MM-DD или YYYY-MM-DDTHH:mm:ss
             const dateMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
             if (dateMatch) {
                 return `${dateMatch[3]}.${dateMatch[2]}.${dateMatch[1]}`;
@@ -307,7 +310,6 @@ const ImportPage: React.FC = () => {
 
     return (
         <div className={styles.pageContainer}>
-            {/* 🔥 Шапка: заголовок и счётчик на одной линии */}
             <div className={styles.header}>
                 <h1 className={styles.title}>Импорт данных из Excel</h1>
                 {preview && !result && (
@@ -343,6 +345,18 @@ const ImportPage: React.FC = () => {
                         </h3>
                         <p className={styles.dropHint}>xls  •  xlsx</p>
                     </div>
+
+                    {isLoadingPreview && uploadProgress && (
+                        <div className={styles.progressBar}>
+                            <div
+                                className={styles.progressFill}
+                                style={{ width: `${uploadProgress.percent}%` }}
+                            />
+                            <span className={styles.progressText}>
+                                Загрузка: {uploadProgress.percent}% ({uploadProgress.loadedChunks}/{uploadProgress.totalChunks})
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
 

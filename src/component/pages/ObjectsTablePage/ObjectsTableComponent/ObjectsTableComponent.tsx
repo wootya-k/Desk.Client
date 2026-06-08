@@ -1,23 +1,38 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import styles from './ObjectsTableComponent.module.css';
 import DeleteButton from '@commons/DeleteButton/DeleteButton';
 import RestoreButton from '@commons/RestoreButton/RestoreButton';
 import ViewButton from '@commons/ViewButton/ViewButton';
+import { calculateAge, getRetirementAge, isOutOfTown, getAgeTooltip, getYearWord } from 'utils/employeeUtils';
 
 interface Row { id: string; status: boolean;[key: string]: unknown; }
-interface Column { title: string; accessor: string; visible: boolean; }
+interface Column {
+  title: string;
+  accessor: string;
+  visible: boolean;
+  isComputed?: boolean;
+  computeType?: 'age' | 'surname' | 'militaryCommission';
+}
 
 interface ObjectTableComponentProps {
-  rows: Row[]; columns: Column[]; onEdit: (id: string) => void;
-  onDelete: (id: string, originalRow: Row) => void; onRestore: (id: string) => void;
-  onColumnOrderChange?: (newColumns: Column[]) => void; onBrokenRefClick?: (uuid: string) => void;
-  sortColumn: string | null; sortDirection: 'asc' | 'desc'; onSort: (accessor: string) => void;
+  rows: Row[];
+  columns: Column[];
+  onEdit: (id: string) => void;
+  onDelete: (id: string, originalRow: Row) => void;
+  onRestore: (id: string) => void;
+  onColumnOrderChange?: (newColumns: Column[]) => void;
+  onBrokenRefClick?: (uuid: string) => void;
+  sortColumn: string | null;
+  sortDirection: 'asc' | 'desc';
+  onSort: (accessor: string) => void;
   paginationEnabled?: boolean;
+  tableType?: string;
 }
 
 const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
-  rows, columns, onEdit, onDelete, onRestore, onBrokenRefClick, onColumnOrderChange,
-  sortColumn, sortDirection, onSort, paginationEnabled = true,
+  rows, columns, onEdit, onDelete, onRestore, onColumnOrderChange,
+  onBrokenRefClick,
+  sortColumn, sortDirection, onSort, paginationEnabled = true, tableType,
 }) => {
   const [tooltip, setTooltip] = useState<{ content: string; x: number; y: number } | null>(null);
   const [hoveredColumn, setHoveredColumn] = useState<string | null>(null);
@@ -42,7 +57,6 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
     return alignment;
   }, [visibleColumns, rows, isNarrowTable]);
 
-
   const getColumnWidth = (accessor: string): number => columnWidths[accessor] || (isNarrowTable ? 200 : 130);
 
   const handleResizeStart = (accessor: string, e: React.MouseEvent) => {
@@ -66,21 +80,79 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
     return sortDirection === 'asc' ? ' ▲' : ' ▼';
   };
 
-  const handleCellMouseEnter = (e: React.MouseEvent, value: unknown, accessor: string) => {
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      console.error('Ошибка копирования:', err);
+    }
+  };
+
+  const handleCellMouseEnter = (e: React.MouseEvent, value: unknown, accessor: string, row?: Row, column?: Column) => {
     const target = e.currentTarget as HTMLTableCellElement;
-    if (typeof value === 'string') {
-      const refRegex = /^ref\(([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\)$/i;
-      const match = value.match(refRegex);
-      if (match) {
-        tooltipTimeoutRef.current = window.setTimeout(() => setTooltip({ content: match[1], x: e.clientX, y: e.clientY }), 300);
+
+    if (column?.computeType === 'age' && tableType === 'employee' && row) {
+      const birthDate = String(row['date_of_birth'] || '');
+      const gender = String(row['gender'] || '');
+      const rank = String(row['military_rank'] || '');
+      const age = calculateAge(birthDate);
+
+      if (age !== null) {
+        const tooltipText = getAgeTooltip(gender, rank, age);
+        tooltipTimeoutRef.current = window.setTimeout(() =>
+          setTooltip({ content: tooltipText, x: e.clientX, y: e.clientY }),
+          400
+        );
         return;
       }
     }
+
+    if ((column?.computeType === 'surname' || column?.accessor === 'last_name') && tableType === 'employee' && row) {
+      const militaryCommission = String(row['military_commissariat'] || '');
+
+      if (isOutOfTown(militaryCommission)) {
+        const tooltipText = `Иногородний: ${militaryCommission || 'не указан'}`;
+        tooltipTimeoutRef.current = window.setTimeout(() =>
+          setTooltip({ content: tooltipText, x: e.clientX, y: e.clientY }),
+          400
+        );
+        return;
+      }
+    }
+
+    if (typeof value === 'string') {
+      const refRegex = /^ref\(([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\)$/i;
+      const match = value.match(refRegex);
+
+      if (match) {
+        const uuid = match[1];
+        const tooltipText = `Ссылка неактуальна и не подлежит восстановлению.\nНажмите ЛКМ, чтобы копировать идентификатор:\n[${uuid}]`;
+        tooltipTimeoutRef.current = window.setTimeout(() =>
+          setTooltip({ content: tooltipText, x: e.clientX, y: e.clientY }),
+          300
+        );
+        return;
+      }
+
+      const outdatedRegex = /^\[(.+)\]$/;
+      const outdatedMatch = value.match(outdatedRegex);
+      if (outdatedMatch) {
+        const content = outdatedMatch[1];
+        const tooltipText = `Ссылка неактуальна, но подлежит восстановлению.\nНажмите ЛКМ, чтобы копировать идентификатор`;
+        tooltipTimeoutRef.current = window.setTimeout(() =>
+          setTooltip({ content: tooltipText, x: e.clientX, y: e.clientY }),
+          300
+        );
+        return;
+      }
+    }
+
     if (target.scrollWidth > target.clientWidth) {
       const content = renderTooltipContent(value, accessor);
       if (content) tooltipTimeoutRef.current = window.setTimeout(() => setTooltip({ content, x: e.clientX, y: e.clientY }), 300);
     }
   };
+
   const handleCellMouseLeave = () => {
     if (tooltipTimeoutRef.current !== null) clearTimeout(tooltipTimeoutRef.current);
     tooltipTimeoutRef.current = null; setTooltip(null);
@@ -98,15 +170,81 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
     return String(value ?? '');
   };
 
-  const renderCellContent = (value: unknown, accessor: string) => {
+  const getCellTextColor = (row: Row, column: Column): string | undefined => {
+    if (tableType !== 'employee') return undefined;
+
+    if (column.computeType === 'surname' || column.accessor === 'last_name') {
+      const militaryCommission = String(row['military_commissariat'] || '');
+      if (isOutOfTown(militaryCommission)) {
+        return '#b8860b';
+      }
+    }
+
+    return undefined;
+  };
+
+  const renderCellContent = (value: unknown, accessor: string, row?: Row, column?: Column) => {
+    if (column?.computeType === 'age' && tableType === 'employee' && row) {
+      const age = row['computed_age'] as number | null | undefined;
+
+      if (age === null || age === undefined) {
+        return <span className={styles.emptyCell}>[нет данных]</span>;
+      }
+
+      const gender = String(row['gender'] || '');
+      const rank = String(row['military_rank'] || '');
+      const retirementAge = getRetirementAge(gender, rank);
+
+      if (retirementAge !== null) {
+        const yearsToRetirement = retirementAge - age;
+        if (yearsToRetirement <= 3) {
+          return <span style={{ color: '#c62828', fontWeight: 'bold' }}>{age} {getYearWord(age)}</span>;
+        }
+      }
+
+      return <span>{age} {getYearWord(age)}</span>;
+    }
+
     if (typeof value === 'string') {
       const refRegex = /^ref\(([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\)$/i;
       const match = value.match(refRegex);
+
       if (match) {
         const uuid = match[1];
-        return <span className={styles.brokenRef} onClick={(e) => { e.stopPropagation(); onBrokenRefClick?.(uuid); }} title="Нажмите для копирования ссылки">[битая ссылка]</span>;
+        return (
+          <span
+            className={styles.brokenRef}
+            onClick={(e) => {
+              e.stopPropagation();
+              copyToClipboard(uuid);
+              onBrokenRefClick?.(uuid);
+            }}
+            title="Нажмите для копирования идентификатора"
+          >
+            [битая ссылка]
+          </span>
+        );
+      }
+
+      const outdatedRegex = /^\[(.+)\]$/;
+      const outdatedMatch = value.match(outdatedRegex);
+      if (outdatedMatch) {
+        const content = outdatedMatch[1];
+        return (
+          <span
+            className={styles.brokenRef}
+            onClick={(e) => {
+              e.stopPropagation();
+              copyToClipboard(content);
+            }}
+            title="Нажмите для копирования значения"
+          >
+            [{content}]
+          </span>
+        );
       }
     }
+
     if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) return <span className={styles.emptyCell}>[нет данных]</span>;
     if (typeof value === 'boolean') return <div className={styles.booleanContainer}><span className={value ? styles.booleanTrue : styles.booleanFalse}>{value ? '✓' : '✕'}</span></div>;
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -132,6 +270,7 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
                     className={`${styles.headerCell} ${styles[alignment === 'center' ? 'centeredHeader' : 'leftAlignedHeader']}`}
                     style={{ width: `${width}px` }}
                     onClick={() => onSort(column.accessor)}
+                    title={column.computeType === 'age' ? 'Нажмите для сортировки по возрасту' : undefined}
                   >
                     <div className={alignment === 'center' ? styles.centeredContent : styles.leftAlignedContent}>
                       {column.title}
@@ -152,9 +291,21 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
                 {visibleColumns.map(column => {
                   const width = getColumnWidth(column.accessor);
                   const alignment = columnAlignment[column.accessor];
+                  const textColor = getCellTextColor(row, column);
+                  const value = column.computeType === 'age' ? null : row[column.accessor];
+
                   return (
-                    <td key={column.accessor} className={`${styles.cell} ${hoveredColumn === column.accessor ? styles.columnHovered : ''} ${alignment === 'center' ? styles.centeredCell : styles.leftAlignedCell}`} style={{ width: `${width}px` }} onMouseEnter={(e) => { setHoveredColumn(column.accessor); handleCellMouseEnter(e, row[column.accessor], column.accessor); }} onMouseLeave={() => { setHoveredColumn(null); handleCellMouseLeave(); }}>
-                      {renderCellContent(row[column.accessor], column.accessor)}
+                    <td
+                      key={column.accessor}
+                      className={`${styles.cell} ${hoveredColumn === column.accessor ? styles.columnHovered : ''} ${alignment === 'center' ? styles.centeredCell : styles.leftAlignedCell}`}
+                      style={{
+                        width: `${width}px`,
+                        color: textColor || undefined
+                      }}
+                      onMouseEnter={(e) => { setHoveredColumn(column.accessor); handleCellMouseEnter(e, value, column.accessor, row, column); }}
+                      onMouseLeave={() => { setHoveredColumn(null); handleCellMouseLeave(); }}
+                    >
+                      {renderCellContent(value, column.accessor, row, column)}
                     </td>
                   );
                 })}
@@ -169,7 +320,7 @@ const ObjectTableComponent: React.FC<ObjectTableComponentProps> = ({
           </tbody>
         </table>
       </section>
-      {tooltip && <div className={styles.tooltip} style={{ left: tooltip.x + 10, top: tooltip.y + 10 }}>{tooltip.content}</div>}
+      {tooltip && <div className={styles.tooltip} style={{ left: tooltip.x + 10, top: tooltip.y + 10, whiteSpace: 'pre-line' }}>{tooltip.content}</div>}
     </>
   );
 };

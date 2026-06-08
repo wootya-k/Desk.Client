@@ -21,6 +21,7 @@ interface Props {
   onApply: (updated: ColumnConfig[], pagination?: PaginationConfig) => void;
   onReset: () => ColumnConfig[];
   onCancel: () => void;
+  tableType?: string;
 }
 
 // ✅ ЕДИНЫЙ ИСТОЧНИК ПРАВДЫ для значений по умолчанию
@@ -32,7 +33,8 @@ const ColumnSettingsModal: React.FC<Props> = ({
   initialPagination = DEFAULT_PAGINATION,
   onApply,
   onReset,
-  onCancel
+  onCancel,
+  tableType
 }) => {
   const [columns, setColumns] = useState<ColumnConfig[]>([...initialColumns]);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -44,6 +46,9 @@ const ColumnSettingsModal: React.FC<Props> = ({
   const [showPaginationView, setShowPaginationView] = useState(false);
   const [paginationConfig, setPaginationConfig] = useState<PaginationConfig>(initialPagination);
   const [rowsPerPageInput, setRowsPerPageInput] = useState<string>(String(initialPagination.rowsPerPage));
+
+  // ✅ НОВОЕ: Состояние для расширенных колонок
+  const [enableExtensions, setEnableExtensions] = useState(false);
 
   const move = (from: number, to: number) => {
     if (from === to) return;
@@ -75,6 +80,7 @@ const ColumnSettingsModal: React.FC<Props> = ({
   const handleReset = () => {
     const resetCols = onReset();
     setColumns(resetCols.map(col => ({ ...col })));
+    setEnableExtensions(false);
 
     // ✅ Сброс строго к ЕДИНОЙ константе
     setPaginationConfig(DEFAULT_PAGINATION);
@@ -218,6 +224,11 @@ const ColumnSettingsModal: React.FC<Props> = ({
     return '—';
   })();
 
+  // ✅ НОВОЕ: Обработчик переключения расширений
+  const handleToggleExtensions = useCallback(() => {
+    setEnableExtensions(prev => !prev);
+  }, []);
+
   return ReactDOM.createPortal(
     <dialog
       className={styles.modalBackdrop}
@@ -344,6 +355,19 @@ const ColumnSettingsModal: React.FC<Props> = ({
           >
             Сбросить
           </FilledColorButton>
+
+          {/* ✅ НОВОЕ: Кнопка Расширение (только для employee) */}
+          {tableType === 'employee' && (
+            <FilledColorButton
+              width='94px'
+              mainColor={enableExtensions ? "#27ae60" : "#FFFFFF"}
+              additionalColor={enableExtensions ? "#2ecc71" : "#9b59b6"}
+              onClick={handleToggleExtensions}
+            >
+              {enableExtensions ? '✓ Расширение' : 'Расширение'}
+            </FilledColorButton>
+          )}
+
           <FilledColorButton
             width='94px'
             mainColor="#FFFFFF"

@@ -12,6 +12,7 @@ import FavoritesModal from './FavoritesModal/FavoritesModal';
 import { updateFavoriteQuery, getFavoriteQueries, saveFavoriteQuery, deleteFavoriteQuery, SavedQuery } from '@services/QueryService';
 import { parseSearchQuery, checkRowAgainstConditionGroups } from 'utils/searchUtils';
 import { setExpiringItem, getExpiringItem } from 'utils/LocalStorageUtils';
+import { calculateAge, getRetirementAge } from 'utils/employeeUtils';
 import styles from './ObjectsTablePage.module.css';
 import RestoreConfirmationModal from '@shared/RestoreConfirmationModal/RestoreConfirmationModal';
 import FilledColorButton from '@commons/FilledColorButton/FilledColorButton';
@@ -32,6 +33,8 @@ export interface ColumnConfig {
   title: string;
   accessor: string;
   visible: boolean;
+  isComputed?: boolean;
+  computeType?: 'age' | 'surname' | 'militaryCommission';
 }
 
 export interface PaginationConfig {
@@ -42,10 +45,9 @@ export interface PaginationConfig {
 const TABLE_CONFIG_KEY = 'tableColumnsConfig';
 const PAGINATION_CONFIG_KEY = 'tablePaginationConfig';
 
-// ✅ НОВОЕ: Функция вместо константы, которая знает про ширину таблицы
 const getDefaultPagination = (isNarrowTable: boolean): PaginationConfig => ({
   enabled: true,
-  rowsPerPage: isNarrowTable ? 50 : 15 // 50 для узкой, 15 для широкой
+  rowsPerPage: isNarrowTable ? 50 : 15
 });
 
 interface TableConfig { [tableType: string]: ColumnConfig[]; }
@@ -99,6 +101,44 @@ const loadPaginationConfig = (tableType: string): PaginationConfig | null => {
   }
 };
 
+const addComputedColumns = (columns: ColumnConfig[], tableType: string): ColumnConfig[] => {
+  if (tableType !== 'employee') return columns;
+  
+  const hasAgeColumn = columns.some(col => col.accessor === 'computed_age');
+  
+  const result = [...columns];
+  
+  if (!hasAgeColumn) {
+    const birthDateIndex = result.findIndex(col => 
+      col.accessor === 'date_of_birth' || col.title.toLowerCase().includes('дата рождения')
+    );
+    const ageColumn: ColumnConfig = {
+      title: 'Возраст',
+      accessor: 'computed_age',
+      visible: true,
+      isComputed: true,
+      computeType: 'age'
+    };
+    if (birthDateIndex !== -1) {
+      result.splice(birthDateIndex + 1, 0, ageColumn);
+    } else {
+      result.unshift(ageColumn);
+    }
+  }
+  
+  const surnameIndex = result.findIndex(col => col.accessor === 'last_name');
+  if (surnameIndex !== -1 && !result[surnameIndex].computeType) {
+    result[surnameIndex] = { ...result[surnameIndex], isComputed: true, computeType: 'surname' };
+  }
+  
+  const milCommIndex = result.findIndex(col => col.accessor === 'military_commissariat');
+  if (milCommIndex !== -1 && !result[milCommIndex].computeType) {
+    result[milCommIndex] = { ...result[milCommIndex], isComputed: true, computeType: 'militaryCommission' };
+  }
+  
+  return result;
+};
+
 const ObjectsTablePage: React.FC = () => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const { type } = useParams<{ type?: string }>();
@@ -131,7 +171,6 @@ const ObjectsTablePage: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // ✅ НОВОЕ: Базовый фоллбэк, который будет перезаписан в useEffect при загрузке
   const [paginationConfig, setPaginationConfig] = useState<PaginationConfig>({ enabled: true, rowsPerPage: 15 });
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -191,6 +230,17 @@ const ObjectsTablePage: React.FC = () => {
 
   const sortedRows = useMemo(() => {
     if (!sortColumn) return filteredRows;
+    
+    if (sortColumn === 'computed_age') {
+      return [...filteredRows].sort((a, b) => {
+        const ageA = a['computed_age'] as number | null | undefined;
+        const ageB = b['computed_age'] as number | null | undefined;
+        if (ageA === null || ageA === undefined) return sortDirection === 'asc' ? 1 : -1;
+        if (ageB === null || ageB === undefined) return sortDirection === 'asc' ? -1 : 1;
+        return sortDirection === 'asc' ? ageA - ageB : ageB - ageA;
+      });
+    }
+    
     return [...filteredRows].sort((a, b) => {
       const aVal = a[sortColumn], bVal = b[sortColumn];
       if (aVal == null && bVal == null) return 0;
@@ -291,25 +341,36 @@ const ObjectsTablePage: React.FC = () => {
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
         const savedConfig = loadTableConfig(type);
-        const initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultCols.map(col => ({ ...col }));
+        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultCols.map(col => ({ ...col }));
+        
+        initialColumns = addComputedColumns(initialColumns, type);
 
-        // ✅ НОВОЕ: Вычисляем, узкая ли таблица, на основе видимых колонок (логика как в ObjectTableComponent)
         const isNarrow = initialColumns.filter(col => col.visible).length <= 12;
         const dynamicDefaultPagination = getDefaultPagination(isNarrow);
 
         const savedPagination = loadPaginationConfig(type);
 
-        // ✅ НОВОЕ: Если настройки сохранены - берем их. Если нет - применяем умный дефолт (50 или 15)
         if (savedPagination) {
           setPaginationConfig(savedPagination);
         } else {
           setPaginationConfig(dynamicDefaultPagination);
         }
 
-        const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => ({ ...JSON.parse(item.value), id: item.id, status: item.status }));
-        setColumns(initialColumns); setRows(parsedRows); setIsLoading(false);
+        const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => {
+          const parsed = JSON.parse(item.value);
+          const age = calculateAge(String(parsed['date_of_birth'] || ''));
+          return { 
+            ...parsed, 
+            id: item.id, 
+            status: item.status,
+            computed_age: age
+          };
+        });
+        setColumns(initialColumns); 
+        setRows(parsedRows); 
+        setIsLoading(false);
       } catch (err) {
-        console.error('❌ Ошибка загрузки:', err);
+        console.error(' Ошибка загрузки:', err);
         setError(err instanceof Error ? err.message : 'Не удалось загрузить данные');
         setIsLoading(false);
       }
@@ -349,15 +410,12 @@ const ObjectsTablePage: React.FC = () => {
     setIsModalOpen(false);
   }, [type]);
 
-  // ✅ НОВОЕ: Сброс теперь тоже учитывает, узкая таблица или широкая
   const handleResetSettings = useCallback(() => {
     const resetColumns = defaultColumns.map(col => ({ ...col }));
     if (type) {
       saveTableConfig(type, resetColumns);
-
       const isNarrow = resetColumns.filter(col => col.visible).length <= 12;
       const resetPagination = getDefaultPagination(isNarrow);
-
       savePaginationConfig(type, resetPagination);
       setPaginationConfig(resetPagination);
     }
@@ -371,7 +429,14 @@ const ObjectsTablePage: React.FC = () => {
 
   const conditionGroups = useMemo(() => parseSearchQuery(searchTerm.trim().toLowerCase()), [searchTerm]);
   const isSaveDisabled = !(conditionGroups.length > 0 && filteredRows.length > 0);
-  const ruFields = useMemo(() => Object.keys(ruToEnMap), [ruToEnMap]);
+  
+  const ruFields = useMemo(() => {
+    const fields = Object.keys(ruToEnMap);
+    if (type === 'employee' && !fields.some(f => f.toLowerCase() === 'возраст')) {
+      fields.unshift('Возраст');
+    }
+    return fields;
+  }, [ruToEnMap, type]);
 
   const handleSaveSuccess = useCallback(() => {
     closeEditModal();
@@ -388,9 +453,21 @@ const ObjectsTablePage: React.FC = () => {
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
         const savedConfig = loadTableConfig(type);
-        const initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultCols.map(col => ({ ...col }));
-        const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => ({ ...JSON.parse(item.value), id: item.id, status: item.status }));
-        setColumns(initialColumns); setRows(parsedRows); setIsLoading(false);
+        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultCols.map(col => ({ ...col }));
+        initialColumns = addComputedColumns(initialColumns, type);
+        const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => {
+          const parsed = JSON.parse(item.value);
+          const age = calculateAge(String(parsed['date_of_birth'] || ''));
+          return { 
+            ...parsed, 
+            id: item.id, 
+            status: item.status,
+            computed_age: age
+          };
+        });
+        setColumns(initialColumns); 
+        setRows(parsedRows); 
+        setIsLoading(false);
       } catch (err) {
         console.error('Ошибка перезагрузки данных:', err);
         setError(err instanceof Error ? err.message : 'Не удалось обновить данные');
@@ -402,34 +479,6 @@ const ObjectsTablePage: React.FC = () => {
 
   const isEmptyState = !isLoading && !error && filteredRows.length === 0;
   const isEmptyDueToSearch = isEmptyState && searchTerm.trim() !== '';
-
-  useEffect(() => {
-    const tableContainer = tableContainerRef.current;
-    if (!tableContainer) return;
-
-    const updateStickyTop = () => {
-      const toolbar = document.querySelector('.toolbarWrapper');
-      if (!toolbar) return;
-
-      const toolbarRect = toolbar.getBoundingClientRect();
-      const containerRect = tableContainer.getBoundingClientRect();
-      const topOffset = toolbarRect.bottom - containerRect.top;
-
-      const headerCells = tableContainer.querySelectorAll(`.${styles.headerCell}`);
-      headerCells.forEach(cell => {
-        (cell as HTMLElement).style.top = `${Math.max(0, topOffset)}px`;
-      });
-    };
-
-    updateStickyTop();
-    window.addEventListener('resize', updateStickyTop);
-    window.addEventListener('scroll', updateStickyTop, true);
-
-    return () => {
-      window.removeEventListener('resize', updateStickyTop);
-      window.removeEventListener('scroll', updateStickyTop, true);
-    };
-  }, []);
 
   return (
     <div className={styles.pageContainer}>
@@ -478,6 +527,7 @@ const ObjectsTablePage: React.FC = () => {
                 else { setSortColumn(accessor); setSortDirection('asc'); }
               }}
               paginationEnabled={paginationConfig.enabled}
+              tableType={type}
             />
           )}
         </div>

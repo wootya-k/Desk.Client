@@ -7,25 +7,24 @@
 }
 
 .toolbarWrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: sticky;
+  top: 15px;
+  /* Если есть навбар высотой 60px сверху, иначе top: 0 */
   z-index: 1000;
   background: linear-gradient(180deg, #fafafa 0%, #f5f7fa 100%);
-  margin-top: 60px;
-  flex-shrink: 0; /* ✅ Не сжимается */
+  margin-top: 15px;
+  /* Отступ от навбара, если он есть */
+  flex-shrink: 0;
 }
 
 .contentLayout {
-  margin-top: 55px;
+  margin-top: 0; /* Убираем фиксированный отступ */
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
   box-sizing: border-box;
-  /* Убедитесь что нет фона здесь или он прозрачный */
 }
 
 
@@ -41,17 +40,21 @@
   /* padding убран полностью */
   box-sizing: border-box;
 }
+
 .tableScrollContainer::-webkit-scrollbar {
   width: 10px;
 }
+
 .tableScrollContainer::-webkit-scrollbar-track {
   background: #f1f1f1;
   border-radius: 4px;
 }
+
 .tableScrollContainer::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border-radius: 4px;
 }
+
 .tableScrollContainer::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
@@ -90,7 +93,11 @@
   transition: border-color 0.2s, box-shadow 0.2s;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
-.statusSelect:hover { border-color: #667eea; }
+
+.statusSelect:hover {
+  border-color: #667eea;
+}
+
 .statusSelect:focus {
   outline: none;
   border-color: #667eea;
@@ -105,6 +112,7 @@
   min-height: 400px;
   gap: 20px;
 }
+
 .spinner {
   width: 48px;
   height: 48px;
@@ -113,11 +121,22 @@
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
-.loadingText { color: #666; font-size: 14px; font-weight: 500; }
+
+.loadingText {
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
 
 .errorContainer {
   display: flex;
@@ -129,50 +148,138 @@
   padding: 40px;
   text-align: center;
 }
+
 .errorIcon {
-  width: 64px; height: 64px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 32px;
 }
-.errorTitle { font-size: 18px; font-weight: 600; color: #2d3748; margin: 0; }
-.errorMessage { color: #d32f3e; font-size: 14px; max-width: 400px; line-height: 1.5; margin: 0; }
-.retryButton {
-  margin-top: 12px; padding: 10px 24px; background: #667eea; color: white;
-  border: none; border-radius: 6px; font-size: 14px; font-weight: 500;
-  cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+
+.errorTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
 }
+
+.errorMessage {
+  color: #d32f3e;
+  font-size: 14px;
+  max-width: 400px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.retryButton {
+  margin-top: 12px;
+  padding: 10px 24px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .retryButton:hover {
-  background: #5568d3; transform: translateY(-1px);
+  background: #5568d3;
+  transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
-.retryButton:active { transform: translateY(0); }
-.retryButton:disabled { background: #cbd5e0; cursor: not-allowed; transform: none; }
+
+.retryButton:active {
+  transform: translateY(0);
+}
+
+.retryButton:disabled {
+  background: #cbd5e0;
+  cursor: not-allowed;
+  transform: none;
+}
 
 .emptyState {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 700px; padding: 40px 20px; text-align: center;
-  border-radius: 12px; border: 1px dashed #cbd5e0; margin: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 700px;
+  padding: 40px 20px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e0;
+  margin: 20px;
 }
+
 .emptyIcon {
-  font-size: 56px; margin-bottom: 8px;
+  font-size: 56px;
+  margin-bottom: 8px;
   animation: float 3s ease-in-out infinite;
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
 }
+
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
-.toast.success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-.toast.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+.toast.success {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
 
-.emptyTitle { font-size: 20px; font-weight: 600; color: #2d3748; margin: 8px 0 4px; }
-.emptyDescription { color: #718096; font-size: 14px; max-width: 320px; line-height: 1.5; margin: 0; }
+.toast.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.emptyTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 8px 0 4px;
+}
+
+.emptyDescription {
+  color: #718096;
+  font-size: 14px;
+  max-width: 320px;
+  line-height: 1.5;
+  margin: 0;
+}
 
 .toast {
-  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 12px; padding: 12px 20px;
-  border-radius: 8px; font-size: 14px; font-weight: 500; z-index: 10001;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); animation: slideDown 0.3s ease-out;
-  max-width: 90%; width: auto;
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10001;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideDown 0.3s ease-out;
+  max-width: 90%;
+  width: auto;
 }

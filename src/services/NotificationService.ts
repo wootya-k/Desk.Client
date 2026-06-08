@@ -17,7 +17,7 @@ export const startNotificationConnection = async (): Promise<signalR.HubConnecti
 
   connectionPromise = (async () => {
     try {
-      const url = await buildUrl('api/notificationHub');
+      const url = await buildUrl('/api/schemas/events'); 
       connection = new signalR.HubConnectionBuilder()
         .withUrl(url)
         .withAutomaticReconnect({

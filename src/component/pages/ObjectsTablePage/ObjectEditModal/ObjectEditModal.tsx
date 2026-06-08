@@ -1,5 +1,4 @@
-// components/ObjectEditModal/ObjectEditModal.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import ObjectEditForm from './ObjectEditForm/ObjectEditForm';
 import styles from './ObjectEditModal.module.css';
@@ -10,7 +9,8 @@ import DeleteConfirmationModal from '@shared/DeleteConfirmationModal/DeleteConfi
 import ReportTemplateSelectorModal from '@commons/ReportTemplateSelectorModal/ReportTemplateSelectorModal';
 import {
     fetchDetailEntityById,
-    fetchDetailEntityByType
+    fetchDetailEntityByType,
+    DetailEntityWithRaw
 } from '@services/DetailService';
 import {
     updateObject,
@@ -26,6 +26,8 @@ import { useNavigate } from 'react-router-dom';
 import { getTransforms, TransformEntity, TransformType } from '@services/TransformService';
 import { getObjectTypesMap, getObjectTypeNameById } from '@services/ObjectTypeService';
 import { ErrorObject } from 'ajv';
+import { startNotificationConnection } from '@services/NotificationService';
+import * as signalR from '@microsoft/signalr';
 
 // ============================================================================
 // Утилита: конвертация серверных ошибок в формат AJV для JsonForms
@@ -120,12 +122,12 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
     const [objectTypesMap, setObjectTypesMap] = useState<Record<string, string>>({});
     const [currentType, setCurrentType] = useState<string>(type);
 
-    // ✅ Состояние для мёртвого объекта и хард-удаления
     const [isDeadObject, setIsDeadObject] = useState(externalIsDeadObject);
     const [isHardDeleteModalOpen, setIsHardDeleteModalOpen] = useState(false);
-
-    // ✅ Состояние для серверных ошибок валидации (AJV format)
     const [serverValidationErrors, setServerValidationErrors] = useState<ErrorObject[]>([]);
+
+    // ✅ useRef для сырой схемы — не вызывает перерендер при изменении!
+    const rawSchemaStringRef = useRef<string>("");
 
     const cookieKey = id ? `currentVersion_${type}_${id}` : `currentVersion_${type}_new`;
     const navigate = useNavigate();
@@ -133,12 +135,10 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
     const [showJsonPreview, setShowJsonPreview] = useState(false);
     const [jsonCopied, setJsonCopied] = useState(false);
 
-
     const toggleJsonPreview = useCallback((): void => {
         setShowJsonPreview(prev => !prev);
     }, []);
 
-    // ✅ Копирование JSON в буфер обмена
     const handleCopyJson = useCallback(async (): Promise<void> => {
         if (!formData) return;
         try {
@@ -244,6 +244,7 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
         setIsDeadObject(externalIsDeadObject);
     }, [externalIsDeadObject]);
 
+    // ✅ 1. Загрузка данных формы
     useEffect(() => {
         if (!isOpen) return;
 
@@ -252,10 +253,10 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             setError(false);
             setIsPrintable(false);
             setHasTransformsForType(null);
-            setServerValidationErrors([]); // ✅ Сброс ошибок при открытии
+            setServerValidationErrors([]);
 
             try {
-                let entity: any;
+                let entity: DetailEntityWithRaw;
                 let entityType = type;
 
                 if (id) {
@@ -270,16 +271,19 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                 }
 
                 const sessionData = restoreFromSession();
-                const initialData = sessionData || entity.data;
+                const initialData = (sessionData || entity.data) as Record<string, unknown>;
 
-                setOriginalData(entity.data);
+                setOriginalData(entity.data as Record<string, unknown>);
                 setFormData(initialData);
                 setFormEntity(entity);
+
+                // ✅ Сохраняем сырую схему в ref для проверки зависимостей
+                rawSchemaStringRef.current = entity.rawSchema || "";
 
                 if (sessionData) {
                     saveCurrentSession(sessionData);
                 } else if (!id) {
-                    saveCurrentSession(entity.data);
+                    saveCurrentSession(entity.data as Record<string, unknown>);
                 }
 
                 if (id) {
@@ -302,6 +306,7 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
         fetchData();
     }, [isOpen, id, type, restoreFromSession, saveCurrentSession]);
 
+    // ✅ 2. Сброс состояния при закрытии
     useEffect(() => {
         if (!isOpen) {
             setHistory([]);
@@ -313,7 +318,8 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             setTransforms([]);
             setEdictsError(null);
             setIsHardDeleteModalOpen(false);
-            setServerValidationErrors([]); // ✅ Сброс при закрытии
+            setServerValidationErrors([]);
+            rawSchemaStringRef.current = ""; // Сбрасываем ref
         }
     }, [isOpen]);
 
@@ -323,15 +329,81 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
         }
     }, [formData, isLoading, isOpen, saveCurrentSession]);
 
-    // ✅ Очищаем серверные ошибки, когда пользователь начал редактировать
     useEffect(() => {
         if (serverValidationErrors.length > 0) {
             setServerValidationErrors([]);
         }
     }, [formData]);
 
+    // ✅ 3. SignalR: Перезапрос формы при обновлении зависимых схем
+    useEffect(() => {
+        if (!isOpen) return;
+
+        let isMounted = true;
+        let connection: signalR.HubConnection | null = null;
+
+        const handleSchemaUpdated = async (update: any) => {
+            if (!isMounted) return;
+
+            // 1. Прямое совпадение типа
+            const isDirectMatch = update.type === type || update.type === currentType;
+
+            // 2. Проверка: упоминается ли обновлённый тип в нашей сырой схеме (через $ref)
+            const hasRef = rawSchemaStringRef.current
+                ? (rawSchemaStringRef.current.includes(`"${update.type}"`) ||
+                   rawSchemaStringRef.current.includes(`/${update.type}`))
+                : false;
+
+            if (!isDirectMatch && !hasRef) {
+                return; // Игнорируем, эта форма не зависит от обновлённого типа
+            }
+
+            try {
+                // 🔄 ДЕЛАЕМ ТОТ ЖЕ САМЫЙ ЗАПРОС, ЧТО И ПРИ ОТКРЫТИИ!
+                // Сервер сам вернёт свежую схему с актуальными разреференсенными словарями.
+                const freshEntity = id
+                    ? await fetchDetailEntityById(id)
+                    : await fetchDetailEntityByType(type);
+
+                if (!isMounted) return;
+
+                // ✅ Обновляем схему и uiSchema, НО formData (данные пользователя) не трогаем!
+                setFormEntity((prev: any) => {
+                    if (!prev) return prev;
+                    return {
+                        ...prev,
+                        schema: freshEntity.schema,
+                        uiSchema: freshEntity.uiSchema,
+                    };
+                });
+
+                // Обновляем ref для будущих проверок
+                rawSchemaStringRef.current = freshEntity.rawSchema || "";
+                
+            } catch (err) {
+                console.error("❌ Ошибка при перезапросе формы через SignalR:", err);
+            }
+        };
+
+        const setup = async () => {
+            connection = await startNotificationConnection();
+            if (connection && isMounted) {
+                connection.on("SchemaUpdated", handleSchemaUpdated);
+            }
+        };
+
+        setup();
+
+        return () => {
+            isMounted = false;
+            if (connection) {
+                connection.off("SchemaUpdated", handleSchemaUpdated);
+            }
+        };
+    }, [isOpen, id, type, currentType]); // Зависимости только примитивы, бесконечного цикла не будет
+
     const handleClose = useCallback((): void => {
-        setServerValidationErrors([]); // ✅ Сброс ошибок при закрытии
+        setServerValidationErrors([]);
         if (hasUnsavedChanges()) {
             setShowUnsavedModal(true);
         } else {
@@ -355,16 +427,14 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             }
 
             clearCurrentSession();
-            setServerValidationErrors([]); // ✅ Успех — очищаем ошибки
+            setServerValidationErrors([]);
             if (onSaveSuccess) onSaveSuccess();
             onClose();
         } catch (err) {
-            // ✅ Обрабатываем валидационные ошибки с бэкенда (422)
             if (err instanceof ValidationException) {
                 const ajvErrors = convertServerErrorsToAjv(err.errors);
                 setServerValidationErrors(ajvErrors);
 
-                // 🔔 Скролл к первому полю с ошибкой (опционально)
                 setTimeout(() => {
                     const firstErrorPath = Object.keys(err.errors)[0];
                     if (firstErrorPath) {
@@ -374,16 +444,14 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                     }
                 }, 100);
 
-                return; // ❗ Не закрываем модалку — даём пользователю исправить
+                return;
             }
 
-            // ❌ Другие ошибки
             console.error('Ошибка сохранения:', err);
             setError(true);
         }
     }, [formEntity, formData, type, id, currentType, onSaveSuccess, onClose, clearCurrentSession]);
 
-    // ✅ Обработчики для хард-удаления
     const handleHardDeleteClick = useCallback((): void => {
         setIsHardDeleteModalOpen(true);
     }, []);
@@ -475,6 +543,9 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             setFormData(mergedData);
             setCurrentType(targetType);
 
+            // ✅ Обновляем ref при применении трансформации
+            rawSchemaStringRef.current = targetEntity.rawSchema || "";
+
             saveCurrentSession(mergedData);
             setShowEdictsModal(false);
 
@@ -490,7 +561,7 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
             setFormData(originalData);
         }
         clearCurrentSession();
-        setServerValidationErrors([]); // ✅ Сброс ошибок при сбросе формы
+        setServerValidationErrors([]);
     };
 
     const handleResetAndClose = (): void => {
@@ -621,7 +692,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
 
                     <div className={styles.modalContent}>
                         {showJsonPreview ? (
-                            // 📄 JSON Preview Panel
                             <div className={styles.jsonPreviewPanel}>
                                 <button
                                     className={styles.copyJsonBtn}
@@ -639,7 +709,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                                 </pre>
                             </div>
                         ) : (
-                            // 📝 Обычная форма
                             <ObjectEditForm
                                 formEntity={formEntity}
                                 formData={formData}
@@ -657,7 +726,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                         </span>
                     )}
 
-                    {/* ✅ Футер с кнопками */}
                     <div className={styles.modalFooter}>
                         {isDeadObject && id && (
                             <FilledColorButton
@@ -730,7 +798,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                     )}
                 </div>
 
-                {/* Панель истории */}
                 <div className={`${styles.historyPanelContainer} ${showHistory ? styles.visible : ''}`}>
                     <div className={styles.historyPanel}>
                         <div className={styles.historyHeader}>
@@ -779,7 +846,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                     </div>
                 </div>
 
-                {/* Панель действий (трансформы) */}
                 <div className={`${styles.edictsPanelContainer} ${showEdictsModal ? styles.visible : ''}`}>
                     <div className={styles.edictsPanel}>
                         <div className={styles.edictsHeader}>
@@ -840,7 +906,6 @@ const ObjectEditModal: React.FC<ObjectEditModalProps> = ({
                 </div>
             </div>
 
-            {/* Модалка подтверждения хард-удаления */}
             {isHardDeleteModalOpen &&
                 ReactDOM.createPortal(
                     <DeleteConfirmationModal

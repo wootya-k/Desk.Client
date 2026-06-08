@@ -4,21 +4,26 @@
   justify-content: center;
   align-items: center;
   width: 100%;
-  padding: 20px 0px 10px 0;
   position: relative;
   background: linear-gradient(180deg, #fafafa 0%);
 }
 
 .toolbarButtons {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 12px 16px;
   width: 100%;
-  max-width: 1400px;
-  padding: 0 16px;
   box-sizing: border-box;
+}
+
+.searchWrapper {
+  order: -1;
+  flex-basis: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
 }
 
 /* Контейнер элемента + бейджа — без эффектов */
@@ -50,8 +55,10 @@
   font-size: 10px;
   font-weight: 600;
   border-radius: 15px;
-  background: rgba(22, 26, 32, 0.6); /* ← полупрозрачный (0.7 вместо 1.0) */
-  backdrop-filter: blur(4px); /* ← размытие фона */
+  background: rgba(22, 26, 32, 0.6);
+  /* ← полупрозрачный (0.7 вместо 1.0) */
+  backdrop-filter: blur(4px);
+  /* ← размытие фона */
 
   pointer-events: none;
   user-select: none;
@@ -505,13 +512,14 @@
 
 .paginate {
   position: relative;
-  width: 20px;    
+  width: 20px;
   cursor: pointer;
   background: transparent;
   border: 0;
   outline: 0;
   transform: translate3d(0, 0, 0);
-  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.15)); /* тень тоже уменьшили */
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.15));
+  /* тень тоже уменьшили */
   padding: 0;
   margin: 0;
   flex-shrink: 0;
@@ -521,9 +529,12 @@
   position: absolute;
   top: 40%;
   left: 0;
-  width: 20px;        /* было 50px → 20px */
-  height: 2px;        /* было 5px → 2px */
-  border-radius: 1px; /* было 2.5px → 1px */
+  width: 20px;
+  /* было 50px → 20px */
+  height: 2px;
+  /* было 5px → 2px */
+  border-radius: 1px;
+  /* было 2.5px → 1px */
   background: #555;
   transition: all 0.15s ease;
   transform-origin: 50% 50%;
@@ -600,7 +611,8 @@
 
 .paginate.left:disabled i:first-child,
 .paginate.left:disabled i:last-child {
-  transform: translate(-3px, 0) rotate(0deg); /* уменьшили сдвиг */
+  transform: translate(-3px, 0) rotate(0deg);
+  /* уменьшили сдвиг */
 }
 
 .paginate.right:disabled i:first-child,
@@ -611,12 +623,14 @@
 /* === СЧЁТЧИК СТРАНИЦ === */
 .counter {
   text-align: center;
-  font-size: 20px;      /* было 30px → 12px */
+  font-size: 20px;
+  /* было 30px → 12px */
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
   color: #555;
   font-weight: 500;
-  min-width: 50px;      /* было 80px → 50px */
+  min-width: 50px;
+  /* было 80px → 50px */
   user-select: none;
   line-height: 1;
 }
@@ -627,12 +641,12 @@
     font-size: 11px;
     min-width: 40px;
   }
-  
+
   .paginate {
     width: 18px;
     height: 18px;
   }
-  
+
   .paginate i {
     width: 18px;
     height: 2px;
