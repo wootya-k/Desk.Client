@@ -201,9 +201,6 @@
   color: #ffffff;
 }
 
-.togglePreviewBtn.active .toggleIcon {
-  color: #9b59b6;
-}
 
 /* ✅ Контент настроек пагинации */
 .paginationContent {

@@ -19,7 +19,7 @@ import FilledColorButton from '@commons/FilledColorButton/FilledColorButton';
 
 interface FetchObjectItem {
   id: string;
-  value: string;
+  value: string | Record<string, unknown>;
   status: boolean;
 }
 
@@ -136,6 +136,54 @@ const addComputedColumns = (columns: ColumnConfig[], tableType: string): ColumnC
   }
 
   return result;
+};
+
+// ✅ ИЗВЛЕЧЕНИЕ ВСЕХ УНИКАЛЬНЫХ КЛЮЧЕЙ ИЗ ДАННЫХ
+const extractKeysFromData = (rows: Row[]): string[] => {
+  const keysSet = new Set<string>();
+  rows.forEach(row => {
+    Object.keys(row).forEach(key => {
+      if (key !== 'id' && key !== 'status' && key !== 'computed_age') {
+        keysSet.add(key);
+      }
+    });
+  });
+  return Array.from(keysSet);
+};
+
+// ✅ ОБНОВЛЕНИЕ НАЗВАНИЙ КОЛОНОК ИЗ FIELDTITLES
+const updateColumnsWithFieldTitles = (
+  columns: ColumnConfig[], 
+  fieldTitles: Record<string, string>
+): ColumnConfig[] => {
+  return columns.map(col => ({
+    ...col,
+    title: fieldTitles[col.accessor] || col.title
+  }));
+};
+
+// ✅ ДОБАВЛЕНИЕ НОВЫХ КОЛОНОК ИЗ ДАННЫХ
+const addMissingColumnsFromData = (
+  columns: ColumnConfig[], 
+  dataKeys: string[], 
+  fieldTitles: Record<string, string>
+): ColumnConfig[] => {
+  const existingAccessors = new Set(columns.map(col => col.accessor));
+  
+  const missingColumns: ColumnConfig[] = dataKeys
+    .filter(key => !existingAccessors.has(key))
+    .map(key => ({
+      title: fieldTitles[key] || key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
+      accessor: key,
+      visible: true
+    }));
+
+  if (missingColumns.length > 0) {
+    console.log('➕ Добавляю недостающие колонки:', missingColumns);
+    return [...columns, ...missingColumns];
+  }
+  
+  return columns;
 };
 
 const ObjectsTablePage: React.FC = () => {
@@ -341,7 +389,6 @@ const ObjectsTablePage: React.FC = () => {
     }
   }, []);
 
-  // ✅ НОВОЕ: функция сохранения нового запроса из модалки
   const handleSaveNewFavoriteQuery = useCallback(async (name: string, body: string) => {
     if (!type) return;
     try {
@@ -383,10 +430,46 @@ const ObjectsTablePage: React.FC = () => {
 
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
+        
         const savedConfig = loadTableConfig(type);
         let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultColumns.map(col => ({ ...col }));
 
+        // ✅ ОБНОВЛЯЕМ ВСЕ НАЗВАНИЯ КОЛОНОК ИЗ АКТУАЛЬНОЙ СХЕМЫ
+        initialColumns = updateColumnsWithFieldTitles(initialColumns, fieldTitles);
+
         initialColumns = addComputedColumns(initialColumns, type);
+
+        // ✅ БЕЗОПАСНЫЙ ПАРСИНГ ДАННЫХ
+        const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => {
+          let parsed: Record<string, unknown>;
+          
+          try {
+            if (typeof item.value === 'object' && item.value !== null) {
+              parsed = item.value as Record<string, unknown>;
+            } else if (typeof item.value === 'string') {
+              parsed = JSON.parse(item.value);
+            } else {
+              console.warn('⚠️ Неизвестный формат value:', item.value);
+              parsed = {};
+            }
+          } catch (error) {
+            console.error('❌ Ошибка парсинга value:', error, 'для item:', item);
+            parsed = {};
+          }
+          
+          const age = calculateAge(String(parsed['date_of_birth'] || ''));
+          
+          return {
+            ...parsed,
+            id: item.id,
+            status: item.status,
+            computed_age: age
+          };
+        });
+
+        // ✅ ДОБАВЛЯЕМ КОЛОНКИ ДЛЯ ПОЛЕЙ, КОТОРЫХ НЕТ В СХЕМЕ
+        const dataKeys = extractKeysFromData(parsedRows);
+        initialColumns = addMissingColumnsFromData(initialColumns, dataKeys, fieldTitles);
 
         const isNarrow = initialColumns.filter(col => col.visible).length <= 12;
         const dynamicDefaultPagination = getDefaultPagination(isNarrow);
@@ -399,21 +482,15 @@ const ObjectsTablePage: React.FC = () => {
           setPaginationConfig(dynamicDefaultPagination);
         }
 
-        const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => {
-          const parsed = JSON.parse(item.value);
-          const age = calculateAge(String(parsed['date_of_birth'] || ''));
-          return {
-            ...parsed,
-            id: item.id,
-            status: item.status,
-            computed_age: age
-          };
-        });
+        console.log('📊 Итоговые колонки:', initialColumns);
+        console.log('📋 Первая строка:', parsedRows[0]);
+        console.log('📝 fieldTitles:', fieldTitles);
+
         setColumns(initialColumns);
         setRows(parsedRows);
         setIsLoading(false);
       } catch (err) {
-        console.error(' Ошибка загрузки:', err);
+        console.error('❌ Ошибка загрузки:', err);
         setError(err instanceof Error ? err.message : 'Не удалось загрузить данные');
         setIsLoading(false);
       }
@@ -502,10 +579,27 @@ const ObjectsTablePage: React.FC = () => {
         setDefaultColumns(defaultCols);
         const savedConfig = loadTableConfig(type);
         let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultColumns.map(col => ({ ...col }));
+        
+        initialColumns = updateColumnsWithFieldTitles(initialColumns, fieldTitles);
         initialColumns = addComputedColumns(initialColumns, type);
+        
         const parsedRows: Row[] = (data as FetchObjectItem[]).map(item => {
-          const parsed = JSON.parse(item.value);
+          let parsed: Record<string, unknown>;
+          
+          try {
+            if (typeof item.value === 'object' && item.value !== null) {
+              parsed = item.value as Record<string, unknown>;
+            } else if (typeof item.value === 'string') {
+              parsed = JSON.parse(item.value);
+            } else {
+              parsed = {};
+            }
+          } catch (error) {
+            parsed = {};
+          }
+          
           const age = calculateAge(String(parsed['date_of_birth'] || ''));
+          
           return {
             ...parsed,
             id: item.id,
@@ -513,6 +607,10 @@ const ObjectsTablePage: React.FC = () => {
             computed_age: age
           };
         });
+
+        const dataKeys = extractKeysFromData(parsedRows);
+        initialColumns = addMissingColumnsFromData(initialColumns, dataKeys, fieldTitles);
+
         setColumns(initialColumns);
         setRows(parsedRows);
         setIsLoading(false);
@@ -590,7 +688,6 @@ const ObjectsTablePage: React.FC = () => {
       {isDeleteModalOpen && ReactDOM.createPortal(<DeleteConfirmationModal preview="Вы уверены, что хотите удалить этот объект?" onConfirm={handleConfirmDelete} onCancel={handleCancelDelete} />, document.getElementById('modal-root')!)}
       {isModalOpen && ReactDOM.createPortal(<ColumnSettingsModal initialColumns={columns} defaultColumns={defaultColumns} initialPagination={paginationConfig} onApply={handleApplySettings} onReset={handleResetSettings} onCancel={() => setIsModalOpen(false)} />, document.getElementById('modal-root')!)}
       
-      {/* ✅ ИЗМЕНЕНО: передаем currentQuery и onSaveNewQuery в FavoritesModal */}
       {isFavoritesModalOpen && ReactDOM.createPortal(
         <FavoritesModal 
           isOpen={isFavoritesModalOpen} 

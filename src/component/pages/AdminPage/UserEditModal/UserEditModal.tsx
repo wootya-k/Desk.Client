@@ -111,7 +111,7 @@ const UserEditModal: React.FC<Props> = ({
       const newPassword = onGeneratePassword();
       setFormData(prev => ({ ...prev, password: newPassword }));
       setErrors(prev => ({ ...prev, password: '' }));
-      setShowPassword(true);
+      // Пароль остаётся скрытым после генерации
     }
   };
 
@@ -144,12 +144,13 @@ const UserEditModal: React.FC<Props> = ({
     >
       <article className={styles.modalContent}>
         <button
-          className={styles.closeButton}
+          className={styles.resetButton}
           onClick={onCancel}
+          title="Закрыть"
           type="button"
           aria-label="Закрыть"
         >
-          &#x2715;
+          <span className={styles.closeIcon}>✕</span>
         </button>
 
         <h2 className={styles.modalTitle}>
@@ -266,11 +267,23 @@ const UserEditModal: React.FC<Props> = ({
 
           <div className={styles.formRow}>
             <div className={styles.formGroup}>
-              <label className={styles.label}>Должность</label>
+              <label className={styles.label}>Официальная должность</label>
               <input
                 type="text"
                 name="position"
                 value={formData.position}
+                onChange={handleChange}
+                className={styles.input}
+                placeholder="Ведущий специалист по великим делам"
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Предпросмотр должности</label>
+              <input
+                type="text"
+                name="position"
+                value={(formData as any).positionPreview}
                 onChange={handleChange}
                 className={styles.input}
                 placeholder="Ведущий специалист по великим делам"
@@ -290,59 +303,68 @@ const UserEditModal: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className={styles.formRow}>
+          {/* === Пароль + галочка заморозки в одном ряду === */}
+          <div className={`${styles.formRow} ${styles.passwordRow}`}>
             <div className={styles.formGroup}>
               <label className={styles.label}>
                 Пароль {!user && <span className={styles.required}>*</span>}
               </label>
-              <div className={styles.passwordGroup}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`${styles.input} ${styles.passwordInput} ${errors.password ? styles.error : ''}`}
-                  placeholder={user ? 'Оставьте пустым, чтобы не менять' : 'Введите пароль'}
-                  autoComplete={user ? 'new-password' : 'password'}
-                />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                className={`${styles.input} ${errors.password ? styles.error : ''}`}
+                placeholder={user ? 'Оставьте пустым, чтобы не менять' : 'Введите пароль'}
+                autoComplete={user ? 'new-password' : 'password'}
+              />
+              {errors.password && <span className={styles.errorMessage}>{errors.password}</span>}
+              <div className={styles.passwordActions}>
                 <button
                   type="button"
-                  className={styles.generatePasswordBtn}
+                  className={styles.passwordToggle}
                   onClick={handleGeneratePassword}
                 >
                   Сгенерировать
                 </button>
+                {formData.password && (
+                  <button
+                    type="button"
+                    className={styles.passwordToggle}
+                    onClick={() => setShowPassword(prev => !prev)}
+                  >
+                    {showPassword ? 'Скрыть' : 'Раскрыть'}
+                  </button>
+                )}
               </div>
-              {errors.password && <span className={styles.errorMessage}>{errors.password}</span>}
-              {formData.password && (
-                <button
-                  type="button"
-                  className={styles.passwordToggle}
-                  onClick={() => setShowPassword(prev => !prev)}
-                >
-                  {showPassword ? 'Скрыть' : 'Раскрыть'}
-                </button>
-              )}
             </div>
-          </div>
 
-          {user && (
-            <div className={styles.suspendSection}>
-              <div className={styles.suspendInfo}>
-                <span className={styles.suspendLabel}>Статус аккаунта:</span>
-                <span className={formData.isSuspended ? styles.suspendedLabel : styles.activeLabel}>
-                  {formData.isSuspended ? 'Заморожен' : 'Активен'}
-                </span>
+            {user && (
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Статус аккаунта</label>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={formData.isSuspended}
+                    onChange={() =>
+                      setFormData(prev => ({ ...prev, isSuspended: !prev.isSuspended }))
+                    }
+                    className={styles.checkbox}
+                  />
+                  <span className={styles.checkboxText}>Заморозить</span>
+                </label>
+                <div className={styles.statusHint}>
+                  <span
+                    className={
+                      formData.isSuspended ? styles.suspendedLabel : styles.activeLabel
+                    }
+                  >
+                    {formData.isSuspended ? '(Заморожен)' : '(Активен)'}
+                  </span>
+                </div>
               </div>
-              <button
-                type="button"
-                className={`${styles.suspendButton} ${formData.isSuspended ? styles.suspendedBtn : styles.activeBtn}`}
-                onClick={() => setFormData(prev => ({ ...prev, isSuspended: !prev.isSuspended }))}
-              >
-                {formData.isSuspended ? 'Разморозить аккаунт' : 'Заморозить аккаунт'}
-              </button>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className={styles.actions}>
             <FilledColorButton
@@ -353,11 +375,7 @@ const UserEditModal: React.FC<Props> = ({
               {user ? 'Сохранить' : 'Создать'}
             </FilledColorButton>
 
-            <FilledColorButton
-              onClick={onCancel}
-            >
-              Отмена
-            </FilledColorButton>
+            <FilledColorButton onClick={onCancel}>Отмена</FilledColorButton>
           </div>
         </form>
       </article>
