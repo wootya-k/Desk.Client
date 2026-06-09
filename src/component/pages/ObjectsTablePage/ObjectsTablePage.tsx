@@ -422,6 +422,10 @@ const ObjectsTablePage: React.FC = () => {
       setIsLoading(true); setError(null);
       try {
         const [data, schemaResponse] = await Promise.all([fetchAllObjects(type, { status: statusFilter }), fetchFieldTitlesById(type)]);
+        
+        console.log('📋 schemaResponse:', schemaResponse); // <-- ДОБАВИТЬ
+      console.log('📋 fieldTitles:', schemaResponse.fieldTitles); // <-- ДОБАВИТЬ
+      
         const { objectType, fieldTitles } = schemaResponse;
         setObjectType(objectType);
         const newMap: Record<string, string> = {};
@@ -432,7 +436,7 @@ const ObjectsTablePage: React.FC = () => {
         setDefaultColumns(defaultCols);
         
         const savedConfig = loadTableConfig(type);
-        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultColumns.map(col => ({ ...col }));
+        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultCols.map(col => ({ ...col }));
 
         // ✅ ОБНОВЛЯЕМ ВСЕ НАЗВАНИЯ КОЛОНОК ИЗ АКТУАЛЬНОЙ СХЕМЫ
         initialColumns = updateColumnsWithFieldTitles(initialColumns, fieldTitles);
@@ -466,10 +470,6 @@ const ObjectsTablePage: React.FC = () => {
             computed_age: age
           };
         });
-
-        // ✅ ДОБАВЛЯЕМ КОЛОНКИ ДЛЯ ПОЛЕЙ, КОТОРЫХ НЕТ В СХЕМЕ
-        const dataKeys = extractKeysFromData(parsedRows);
-        initialColumns = addMissingColumnsFromData(initialColumns, dataKeys, fieldTitles);
 
         const isNarrow = initialColumns.filter(col => col.visible).length <= 12;
         const dynamicDefaultPagination = getDefaultPagination(isNarrow);
@@ -578,7 +578,7 @@ const ObjectsTablePage: React.FC = () => {
         const defaultCols = createDefaultColumns(fieldTitles);
         setDefaultColumns(defaultCols);
         const savedConfig = loadTableConfig(type);
-        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultColumns.map(col => ({ ...col }));
+        let initialColumns = savedConfig?.length ? mergeColumns(savedConfig, defaultCols) : defaultCols.map(col => ({ ...col }));
         
         initialColumns = updateColumnsWithFieldTitles(initialColumns, fieldTitles);
         initialColumns = addComputedColumns(initialColumns, type);
@@ -607,9 +607,6 @@ const ObjectsTablePage: React.FC = () => {
             computed_age: age
           };
         });
-
-        const dataKeys = extractKeysFromData(parsedRows);
-        initialColumns = addMissingColumnsFromData(initialColumns, dataKeys, fieldTitles);
 
         setColumns(initialColumns);
         setRows(parsedRows);
